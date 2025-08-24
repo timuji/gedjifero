@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GEDJIFERO</title>
+  <title>GEDJIFERO - Система учета времени</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="logo.ico" type="image/x-icon">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏱️</text></svg>">
 </head>
 <body>
   <div class="modal active" id="login-modal">
@@ -20,7 +20,8 @@
     <header class="header">
       <div class="header-left">
         <div class="logo-container">
-          <img src="logo-logo.png" alt="GEDJIFERO" class="logo-img">
+          <div class="logo-img">⏱️</div>
+          <h1>GEDJIFERO</h1>
         </div>
       </div>
       <div class="header-right">
@@ -39,14 +40,24 @@
       <section class="timers">
         <div class="timer-card"><span>Смена</span><span id="shift-timer" class="timer-value">00:00:00</span></div>
         <div class="timer-card"><span>Звонок</span><span id="call-timer" class="timer-value">00:00:00</span></div>
+        <div class="timer-card"><span>Пауза</span><span id="pause-total-timer" class="timer-value">00:00:00</span></div>
       </section>
 
       <section class="projects-section">
         <div class="projects-header">
           <h2>Проекты</h2>
-          <button id="edit-projects-btn" class="btn-edit">✏️</button>
-          <span id="project-count">Проектов: 20</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button id="edit-projects-btn" class="btn-edit" title="Добавить или изменить проекты">✏️</button>
+            <span id="project-count">Проектов: 5</span>
+          </div>
         </div>
+        
+        <div style="text-align: center; margin-bottom: 20px; padding: 10px; background: rgba(212, 175, 55, 0.1); border-radius: 8px; border-left: 3px solid var(--accent);">
+          <p style="margin: 0; font-size: 14px; color: var(--accent);">
+            💡 Нужно больше проектов? Нажмите на <strong>✏️</strong> чтобы добавить!
+          </p>
+        </div>
+        
         <div class="projects-grid" id="projects-container"></div>
       </section>
     </div>
@@ -64,13 +75,23 @@
     <div class="login-modal-content">
       <h2>🧾 Отчёт</h2>
       <div id="report-body"></div>
-      <button id="close-report" class="btn-shift">Закрыть</button>
+      <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+        <button id="export-csv" class="btn-shift">📊 Экспорт CSV</button>
+        <button id="close-report" class="btn-shift">Закрыть</button>
+      </div>
     </div>
   </div>
 
   <div id="edit-projects-modal" class="modal">
     <div class="login-modal-content">
       <h2>✏️ Редактирование проектов</h2>
+      
+      <div style="background: rgba(212, 175, 55, 0.1); padding: 10px; border-radius: 8px; margin-bottom: 15px; border-left: 3px solid var(--accent);">
+        <p style="margin: 0; font-size: 14px; color: var(--accent);">
+          📝 Чтобы добавить проект, нажмите кнопку "Добавить проект" ниже
+        </p>
+      </div>
+      
       <div id="projects-edit-container" style="max-height: 400px; overflow-y: auto; margin: 20px 0;"></div>
       <button id="add-project-btn" class="btn-shift" style="margin-bottom: 15px;">+ Добавить проект</button>
       <div style="display: flex; gap: 10px;">
@@ -80,28 +101,68 @@
     </div>
   </div>
 
-<!-- Добавить перед закрывающим тегом body -->
-<div id="edit-calls-modal" class="modal">
-  <div class="login-modal-content">
-    <h2>✏️ Изменить количество звонков</h2>
-    <div style="margin: 20px 0;">
-      <div style="font-size: 18px; margin-bottom: 10px; color: var(--accent);">
-        Проект: <strong id="edit-calls-project-name"></strong>
+  <div id="edit-calls-modal" class="modal">
+    <div class="login-modal-content">
+      <h2>✏️ Изменить количество звонков</h2>
+      <div style="margin: 20px 0;">
+        <div style="font-size: 18px; margin-bottom: 10px; color: var(--accent);">
+          Проект: <strong id="edit-calls-project-name"></strong>
+        </div>
+        <input 
+          id="edit-calls-input" 
+          type="number" 
+          min="0" 
+          placeholder="Введите количество звонков"
+          style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; font-size: 16px;"
+        >
       </div>
-      <input 
-        id="edit-calls-input" 
-        type="number" 
-        min="0" 
-        placeholder="Введите количество звонков"
-        style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; font-size: 16px;"
-      >
-    </div>
-    <div style="display: flex; gap: 10px;">
-      <button id="save-calls-btn" class="btn-shift">Сохранить</button>
-      <button id="cancel-edit-calls-btn" class="btn-shift" style="background: #666;">Отмена</button>
+      <div style="display: flex; gap: 10px;">
+        <button id="save-calls-btn" class="btn-shift">Сохранить</button>
+        <button id="cancel-edit-calls-btn" class="btn-shift" style="background: #666;">Отмена</button>
+      </div>
     </div>
   </div>
-</div>
+
+  <div id="confirm-channel-modal" class="modal">
+    <div class="login-modal-content">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 15px;">🔁</div>
+        <h2 style="color: var(--accent); margin-bottom: 10px;">Сменить канал?</h2>
+        <p style="opacity: 0.8; line-height: 1.5;">
+          Вы уверены, что хотите сменить канал с 
+          <span id="current-channel-name" style="color: var(--accent); font-weight: 600;">Call Back</span> на 
+          <span id="new-channel-name" style="color: var(--warning); font-weight: 600;">Hot Line</span>?
+        </p>
+      </div>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button id="confirm-channel-change" class="btn-shift" style="background: linear-gradient(145deg, #27ae60, #219a52);">Да, сменить</button>
+        <button id="cancel-channel-change" class="btn-shift" style="background: #666;">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirm-end-shift-modal" class="modal">
+    <div class="login-modal-content">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 15px;">⏹️</div>
+        <h2 style="color: var(--accent); margin-bottom: 10px;">Завершить смену?</h2>
+        <p style="opacity: 0.8; line-height: 1.5; margin-bottom: 20px;">
+          Вы уверены, что хотите завершить текущую смену?<br>
+          Будет сформирован отчет и сброшены все таймеры.
+        </p>
+        <div style="background: rgba(212, 175, 55, 0.1); padding: 15px; border-radius: 12px; border-left: 4px solid var(--accent);">
+          <p style="margin: 0; font-size: 14px; color: var(--accent);">
+            ⏱️ <strong>Время смены:</strong> <span id="shift-duration-confirm">00:00:00</span><br>
+            📞 <strong>Всего звонков:</strong> <span id="total-calls-confirm">0</span>
+          </p>
+        </div>
+      </div>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button id="confirm-end-shift" class="btn-shift" style="background: linear-gradient(145deg, #e74c3c, #c0392b);">Да, завершить</button>
+        <button id="cancel-end-shift" class="btn-shift" style="background: #666;">Отмена</button>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
