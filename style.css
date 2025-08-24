@@ -194,7 +194,7 @@ body::before {
 
 .btn-edit:hover {
   background: rgba(212, 175, 55, 0.2);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 极 0.3);
 }
 
 .timers {
@@ -211,7 +211,7 @@ body::before {
   border-radius: 16px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 极 16px rgba(0, 0, 0, 0.4);
   min-width: 180px;
   transition: var(--transition);
   backdrop-filter: blur(10px);
@@ -257,7 +257,7 @@ body::before {
     text-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
   }
   100% {
-    text-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
+    text-shadow: 0 极 0 15px rgba(212, 175, 55, 0.7);
   }
 }
 
@@ -374,7 +374,7 @@ body::before {
 }
 
 .project-btn:disabled {
-  opacity: 0.5;
+  opacity: 极 0.5;
   cursor: not-allowed;
   border-color: #555;
   color: #777;
@@ -392,12 +392,12 @@ body::before {
   transform: translateX(-50%);
   white-space: nowrap;
   z-index: 10;
-  border: 1px solid #444;
+  border: 极 1px solid #444;
 }
 
 .active-call-card {
   border: 1px solid rgba(212, 175, 55, 0.5);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+  box-shadow: 极 0 0 20px rgba(212, 175, 55, 0.2);
 }
 
 .active-call-card::before {
@@ -474,7 +474,7 @@ body::before {
   color: #111;
   cursor: pointer;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 极 16px;
   padding: 15px;
   margin-top: 10px;
   border: none;
@@ -494,7 +494,7 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.3);
-  color: white;
+ 极 color: white;
   font-size: 14px;
 }
 
@@ -507,7 +507,7 @@ body::before {
 .delete-project-btn {
   background: rgba(231, 76, 60, 0.1);
   border: 1px solid rgba(231, 76, 60, 0.3);
-  color: #e74c3c;
+  color: #e74c极 3c;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -585,89 +585,24 @@ body::before {
 }
 
 .report-header {
-  text-align: center;
-  margin-bottom: 25px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  text-align: left;
+  margin-bottom: 30px;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .report-header h2 {
-  font-size: 26px;
-  justify-content: center;
-  margin-bottom: 15px;
-}
-
-.report-header p {
-  margin: 8px 0;
-  font-size: 16px;
-}
-
-.report-header strong {
-  color: var(--accent);
-  min-width: 140px;
-  display: inline-block;
-  text-align: right;
-  margin-right: 10px;
+  font-size: 24px;
+  justify-content: flex-start;
+  margin-bottom: 10px;
 }
 
 .report-projects {
-  margin-top: 25px;
+  margin-top: 0;
 }
 
 .report-projects h3 {
-  font-size: 20px;
-  margin-bottom: 15px;
-  color: var(--accent);
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  background: rgba(212, 175, 55, 0.1);
-  padding: 12px 15px;
-  text-align: left;
-  font-weight: 600;
-}
-
-td {
-  padding: 12px 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-tr:hover td {
-  background: rgba(212, 175, 55, 0.05);
-}
-
-.projects-section > div:first-of-type {
-  background: rgba(212, 175, 55, 0.1);
-  border-radius: 8px;
-  padding: 12px 15px;
-  margin-bottom: 20px;
-  border-left: 3px solid var(--accent);
-  animation: fadeIn 0.5s ease;
-}
-
-.projects-section > div:first-of-type p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--accent);
-  text-align: center;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  display: none;
 }
 
 .edit-calls-btn {
@@ -713,12 +648,6 @@ tr:hover td {
 
 .modal.active .confirm-modal-content {
   transform: translateY(0) scale(1);
-}
-
-.confirm-icon {
-  font-size: 64px;
-  margin-bottom: 20px;
-  animation: pulse 2s infinite;
 }
 
 .confirm-buttons {
@@ -775,6 +704,42 @@ tr:hover td {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.projects-section > div:first-of-type {
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border-left: 3px solid var(--accent);
+  animation: fadeIn 0.5s ease;
+}
+
+.projects-section > div:first-of-type p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent);
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -865,10 +830,6 @@ tr:hover td {
     font-size: 50px;
   }
 
-  .report-header strong {
-    min-width: 100px;
-  }
-
   .header-right {
     flex-direction: column;
     align-items: flex-start;
@@ -884,7 +845,7 @@ tr:hover td {
     margin-bottom: 15px;
   }
   
-  .projects-section > div:first-of-type p {
+  .projects-section >极 div:first-of-type p {
     font-size: 12px;
   }
 }
