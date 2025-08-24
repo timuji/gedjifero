@@ -13,12 +13,14 @@ document.addEventListener('DOMContentLoaded', function () {
     channelToggleBtn: document.getElementById('channel-toggle-button'),
     shiftTimer: document.getElementById('shift-timer'),
     callTimer: document.getElementById('call-timer'),
+    pauseTotalTimer: document.getElementById('pause-total-timer'),
     pauseModal: document.getElementById('pause-modal'),
     pauseTimer: document.getElementById('pause-timer'),
     endPauseBtn: document.getElementById('end-pause-btn'),
     reportModal: document.getElementById('report-modal'),
     reportBody: document.getElementById('report-body'),
     closeReportBtn: document.getElementById('close-report'),
+    exportCsvBtn: document.getElementById('export-csv'),
     statusIndicator: document.querySelector('.status-indicator'),
     editProjectsBtn: document.getElementById('edit-projects-btn'),
     editProjectsModal: document.getElementById('edit-projects-modal'),
@@ -30,32 +32,49 @@ document.addEventListener('DOMContentLoaded', function () {
     editCallsProjectName: document.getElementById('edit-calls-project-name'),
     editCallsInput: document.getElementById('edit-calls-input'),
     saveCallsBtn: document.getElementById('save-calls-btn'),
-    cancelEditCallsBtn: document.getElementById('cancel-edit-calls-btn')
+    cancelEditCallsBtn: document.getElementById('cancel-edit-calls-btn'),
+    confirmChannelModal: document.getElementById('confirm-channel-modal'),
+    currentChannelName: document.getElementById('current-channel-name'),
+    newChannelName: document.getElementById('new-channel-name'),
+    confirmChannelChange: document.getElementById('confirm-channel-change'),
+    cancelChannelChange: document.getElementById('cancel-channel-change'),
+    confirmEndShiftModal: document.getElementById('confirm-end-shift-modal'),
+    shiftDurationConfirm: document.getElementById('shift-duration-confirm'),
+    totalCallsConfirm: document.getElementById('total-calls-confirm'),
+    confirmEndShift: document.getElementById('confirm-end-shift'),
+    cancelEndShift: document.getElementById('cancel-end-shift')
   };
 
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+
   const state = {
-    operator: localStorage.getItem('operator') || null,
-    shiftActive: localStorage.getItem('shiftActive') === 'true',
-    shiftStartTime: +localStorage.getItem('shiftStartTime') || 0,
-    shiftPaused: localStorage.getItem('shiftPaused') === 'true',
-    pauseStartTime: +localStorage.getItem('pauseStartTime') || 0,
-    totalPausedTime: +localStorage.getItem('totalPausedTime') || 0,
-    currentCall: localStorage.getItem('currentCall') || null,
-    callStartTime: +localStorage.getItem('callStartTime') || 0,
-    channel: localStorage.getItem('channel') || 'Call Back',
-    projects: JSON.parse(localStorage.getItem('projects')) || (() => {
-      const defaultProjects = [];
-      for (let i = 1; i <= 20; i++) {
-        defaultProjects.push({
-          name: `Проект ${i}`,
-          calls: 0,
-          status: 'inactive'
-        });
-      }
-      return defaultProjects;
-    })(),
-    timers: { shift: null, call: null, pause: null },
-    editingProject: null
+    operator: null,
+    shiftActive: false,
+    shiftStartTime: 0,
+    shiftElapsed: 0,
+    shiftPaused: false,
+    pauseStartTime: 0,
+    pauseElapsed: 0,
+    pauseTotalElapsed: 0,
+    currentCall: null,
+    callStartTime: 0,
+    callElapsed: 0,
+    channel: 'Call Back',
+    projects: [],
+    mainTimer: null,
+    editingProject: null,
+    lastUpdate: 0,
+    pendingChannelChange: null
   };
 
   function formatTime(seconds) {
@@ -65,23 +84,72 @@ document.addEventListener('DOMContentLoaded', function () {
     return `${h}:${m}:${s}`;
   }
 
-  function saveState() {
+  function loadState() {
     try {
-      localStorage.setItem('operator', state.operator);
-      localStorage.setItem('shiftActive', state.shiftActive);
-      localStorage.setItem('shiftStartTime', state.shiftStartTime);
-      localStorage.setItem('shiftPaused', state.shiftPaused);
-      localStorage.setItem('pauseStartTime', state.pauseStartTime);
-      localStorage.setItem('totalPausedTime', state.totalPausedTime);
-      localStorage.setItem('currentCall', state.currentCall);
-      localStorage.setItem('callStartTime', state.callStartTime);
-      localStorage.setItem('channel', state.channel);
-      localStorage.setItem('projects', JSON.stringify(state.projects));
+      const saved = localStorage.getItem('gedjifero_state');
+      if (saved) {
+        const data = JSON.parse(saved);
+        
+        state.operator = data.operator || null;
+        state.shiftActive = data.shiftActive || false;
+        state.shiftStartTime = data.shiftStartTime || 0;
+        state.shiftElapsed = data.shiftElapsed || 0;
+        state.shiftPaused = data.shiftPaused || false;
+        state.pauseStartTime = data.pauseStartTime || 0;
+        state.pauseElapsed = data.pauseElapsed || 0;
+        state.pauseTotalElapsed = data.pauseTotalElapsed || 0;
+        state.currentCall = data.currentCall || null;
+        state.callStartTime = data.callStartTime || 0;
+        state.callElapsed = data.callElapsed || 0;
+        state.channel = data.channel || 'Call Back';
+        state.projects = data.projects || [];
+        
+        if (state.shiftActive && !state.shiftPaused) {
+          const currentTime = Date.now();
+          const elapsed = currentTime - state.shiftStartTime;
+          state.shiftStartTime = currentTime - state.shiftElapsed;
+          state.shiftElapsed = elapsed;
+        }
+      } else {
+        for (let i = 1; i <= 5; i++) {
+          state.projects.push({
+            name: `Проект ${i}`,
+            calls: 0,
+            status: 'inactive'
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка загрузки:', e);
+      for (let i = 1; i <= 5; i++) {
+        state.projects.push({
+          name: `Проект ${i}`,
+          calls: 0,
+          status: 'inactive'
+        });
+      }
+    }
+  }
+
+  const saveStateDebounced = debounce(() => {
+    try {
+      const data = {
+        operator: state.operator,
+        shiftActive: state.shiftActive,
+        shiftStartTime: state.shiftStartTime,
+        shiftElapsed: state.shiftElapsed,
+        shiftPaused: state.shiftPaused,
+        pauseStartTime: state.pauseStartTime,
+        pauseElapsed: state.pauseElapsed,
+        pauseTotalElapsed: state.pauseTotalElapsed,
+        currentCall: state.currentCall,
+        callStartTime: state.callStartTime,
+        callElapsed: state.callElapsed,
+        channel: state.channel,
+        projects: state.projects
+      };
       
-      state.projects.forEach(p => {
-        localStorage.setItem(`calls_${p.name}`, p.calls);
-        localStorage.setItem(`status_${p.name}`, p.status);
-      });
+      localStorage.setItem('gedjifero_state', JSON.stringify(data));
     } catch (e) {
       console.error('Ошибка сохранения:', e);
       if (e.name === 'QuotaExceededError') {
@@ -89,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function () {
         alert('Переполнение хранилища. Данные очищены.');
       }
     }
-  }
+  }, 1000);
 
   function updateStatusIndicator() {
     const ind = elements.statusIndicator;
@@ -119,7 +187,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <button class="project-btn" data-project="${project.name}" ${disabled ? `disabled title="${reason}"` : ''}>
             ${project.status === 'active' ? 'Завершить' : 'Начать звонок'}
           </button>
-          <button class="edit-calls-btn" data-project="${project.name}" title="Изменить количество звонков" style="padding: 12px; border-radius: 10px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; transition: var(--transition);">
+          <button class="edit-calls-btn" data-project="${project.name}" title="Изменить количество звонков">
             ✏️
           </button>
         </div>
@@ -132,28 +200,54 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.projectCount.textContent = `Проектов: ${state.projects.length}`;
   }
 
-  function startTimer(type) {
-    stopTimer(type);
-    state.timers[type] = setInterval(() => {
+  function startMainTimer() {
+    stopMainTimer();
+    state.lastUpdate = Date.now();
+    
+    state.mainTimer = setInterval(() => {
       const now = Date.now();
-      let seconds;
-      if (type === 'shift') {
-        seconds = Math.floor((now - state.shiftStartTime - state.totalPausedTime) / 1000);
-        elements.shiftTimer.textContent = formatTime(seconds);
-      } else if (type === 'call') {
-        seconds = Math.floor((now - state.callStartTime) / 1000);
-        elements.callTimer.textContent = formatTime(seconds);
-      } else if (type === 'pause') {
-        seconds = Math.floor((now - state.pauseStartTime) / 1000);
-        elements.pauseTimer.textContent = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-      }
-    }, 1000);
+      const delta = now - state.lastUpdate;
+      state.lastUpdate = now;
+      
+      updateTimers(delta);
+    }, 100);
   }
 
-  function stopTimer(type) {
-    if (state.timers[type]) {
-      clearInterval(state.timers[type]);
-      state.timers[type] = null;
+  function stopMainTimer() {
+    if (state.mainTimer) {
+      clearInterval(state.mainTimer);
+      state.mainTimer = null;
+    }
+  }
+
+  function updateTimers(delta) {
+    if (state.shiftActive && !state.shiftPaused) {
+      state.shiftElapsed += delta;
+      elements.shiftTimer.textContent = formatTime(Math.floor(state.shiftElapsed / 1000));
+      elements.shiftTimer.parentElement.classList.add('active');
+    } else {
+      elements.shiftTimer.parentElement.classList.remove('active');
+    }
+    
+    if (state.currentCall && !state.shiftPaused) {
+      state.callElapsed += delta;
+      elements.callTimer.textContent = formatTime(Math.floor(state.callElapsed / 1000));
+      elements.callTimer.parentElement.classList.add('active');
+    } else {
+      elements.callTimer.parentElement.classList.remove('active');
+    }
+    
+    elements.pauseTotalTimer.textContent = formatTime(Math.floor(state.pauseTotalElapsed / 1000));
+    
+    if (state.shiftPaused) {
+      state.pauseElapsed += delta;
+      const currentPauseSeconds = Math.floor((state.pauseElapsed - state.pauseTotalElapsed) / 1000);
+      const minutes = String(Math.floor(currentPauseSeconds / 60)).padStart(2, '0');
+      const seconds = String(currentPauseSeconds % 60).padStart(2, '0');
+      elements.pauseTimer.textContent = `${minutes}:${seconds}`;
+      elements.pauseTotalTimer.parentElement.classList.add('paused');
+    } else {
+      elements.pauseTotalTimer.parentElement.classList.remove('paused');
     }
   }
 
@@ -164,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.operatorName.textContent = name;
     elements.loginModal.classList.remove('active');
     elements.app.style.display = 'block';
-    saveState();
+    saveStateDebounced();
     renderProjects();
     updateStatusIndicator();
     elements.startShiftBtn.disabled = state.shiftActive;
@@ -178,19 +272,19 @@ document.addEventListener('DOMContentLoaded', function () {
     
     state.shiftActive = true;
     state.shiftStartTime = Date.now();
-    state.totalPausedTime = 0;
-    startTimer('shift');
+    state.shiftElapsed = 0;
+    state.pauseTotalElapsed = 0;
+    state.shiftPaused = false;
+    
+    startMainTimer();
     elements.startShiftBtn.disabled = true;
-    saveState();
+    saveStateDebounced();
     renderProjects();
     updateStatusIndicator();
-    elements.shiftTimer.parentElement.classList.add('active');
   }
 
   function endShift() {
-    stopTimer('shift');
-    stopTimer('call');
-    stopTimer('pause');
+    stopMainTimer();
     
     if (state.currentCall) {
       const project = state.projects.find(p => p.name === state.currentCall);
@@ -202,16 +296,37 @@ document.addEventListener('DOMContentLoaded', function () {
     
     showReport();
     state.currentCall = null;
-    elements.shiftTimer.parentElement.classList.remove('active');
-    elements.callTimer.parentElement.classList.remove('active');
-    elements.startShiftBtn.disabled = false;
+    state.callElapsed = 0;
+    saveStateDebounced();
   }
 
   function toggleChannel() {
-    state.channel = state.channel === 'Call Back' ? 'Hot Line' : 'Call Back';
-    elements.channelToggleBtn.textContent = state.channel;
-    saveState();
-    renderProjects();
+    const newChannel = state.channel === 'Call Back' ? 'Hot Line' : 'Call Back';
+    
+    elements.currentChannelName.textContent = state.channel;
+    elements.newChannelName.textContent = newChannel;
+    elements.confirmChannelModal.classList.add('active');
+    
+    state.pendingChannelChange = newChannel;
+  }
+
+  function confirmChannelChange() {
+    if (state.pendingChannelChange) {
+      state.channel = state.pendingChannelChange;
+      elements.channelToggleBtn.textContent = state.channel;
+      saveStateDebounced();
+      renderProjects();
+      
+      showNotification(`Канал изменен на: ${state.channel}`, 'success');
+    }
+    
+    elements.confirmChannelModal.classList.remove('active');
+    state.pendingChannelChange = null;
+  }
+
+  function cancelChannelChange() {
+    elements.confirmChannelModal.classList.remove('active');
+    state.pendingChannelChange = null;
   }
 
   function togglePause() {
@@ -223,39 +338,45 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!state.shiftActive) return;
     state.shiftPaused = true;
     state.pauseStartTime = Date.now();
-    stopTimer('shift');
-    
-    if (state.currentCall) {
-      stopTimer('call');
-      elements.callTimer.textContent = 'Пауза';
-    }
     
     elements.pauseModal.classList.add('active');
-    startTimer('pause');
-    saveState();
+    saveStateDebounced();
     renderProjects();
     updateStatusIndicator();
   }
 
   function endPause() {
     state.shiftPaused = false;
-    state.totalPausedTime += Date.now() - state.pauseStartTime;
+    const pauseDuration = Date.now() - state.pauseStartTime;
+    state.pauseTotalElapsed += pauseDuration;
+    
     elements.pauseModal.classList.remove('active');
-    stopTimer('pause');
     
-    if (state.shiftActive) startTimer('shift');
-    if (state.currentCall) {
-      state.callStartTime += Date.now() - state.pauseStartTime;
-      startTimer('call');
-    }
-    
-    saveState();
+    saveStateDebounced();
     renderProjects();
     updateStatusIndicator();
   }
 
+  function showEndShiftConfirmation() {
+    const totalSeconds = Math.floor(state.shiftElapsed / 1000);
+    const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
+    
+    elements.shiftDurationConfirm.textContent = formatTime(totalSeconds);
+    elements.totalCallsConfirm.textContent = totalCalls;
+    elements.confirmEndShiftModal.classList.add('active');
+  }
+
+  function confirmEndShift() {
+    elements.confirmEndShiftModal.classList.remove('active');
+    endShift();
+  }
+
+  function cancelEndShift() {
+    elements.confirmEndShiftModal.classList.remove('active');
+  }
+
   function showReport() {
-    const duration = state.shiftStartTime ? Math.floor((Date.now() - state.shiftStartTime - state.totalPausedTime) / 1000) : 0;
+    const totalSeconds = Math.floor(state.shiftElapsed / 1000);
     const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
     
     const formatDate = ts => {
@@ -263,53 +384,70 @@ document.addEventListener('DOMContentLoaded', function () {
         return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`;
     };
     
-    const getTimeInterval = () => {
-        const startHour = new Date(state.shiftStartTime).getHours();
-        if (startHour >= 18 || startHour < 6) {
-            return '20:00 - 08:00';
-        } else {
-            return '08:00 - 20:00';
-        }
-    };
-    
-    const getChannelName = () => {
-        return state.channel === 'Call Back' ? 'CallBack' : 'HotLine';
-    };
-    
-    const timeInterval = getTimeInterval();
     const currentDate = formatDate(Date.now());
-    const channelName = getChannelName();
+    const channelName = state.channel === 'Call Back' ? 'CallBack' : 'HotLine';
     
     const projectsWithCalls = state.projects.filter(p => p.calls > 0);
     
     elements.reportBody.innerHTML = `
-        <div class="report-header" style="text-align: left; margin-bottom: 30px;">
-            <div style="font-size: 24px; font-weight: bold; color: var(--accent); margin-bottom: 10px;">
-                ${currentDate}    ${timeInterval} ( ${state.operator} )
-            </div>
+        <div class="report-header">
+            <h2>Отчет за ${currentDate}</h2>
+            <p><strong>Оператор:</strong> ${state.operator}</p>
+            <p><strong>Время смены:</strong> ${formatTime(totalSeconds)}</p>
+            <p><strong>Канал:</strong> ${channelName}</p>
+            <p><strong>Всего звонков:</strong> ${totalCalls}</p>
         </div>
         
-        <div style="margin-top: 20px;">
-            ${projectsWithCalls.map(p => `
-                <div style="margin-bottom: 15px; padding: 15px; background: rgba(212, 175, 55, 0.05); border-radius: 8px; border-left: 4px solid var(--accent);">
-                    <div style="font-weight: 600; color: var(--accent); margin-bottom: 8px; font-size: 18px;">${p.name}</div>
-                    <div style="font-size: 16px;">${channelName} - ${p.calls}</div>
-                </div>
-            `).join('')}
-            
-            ${projectsWithCalls.length === 0 ? `
-                <div style="text-align: center; opacity: 0.7; padding: 40px; font-style: italic; font-size: 16px;">
+        <div class="report-projects">
+            <h3>Детализация по проектам</h3>
+            ${projectsWithCalls.length > 0 ? `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Проект</th>
+                            <th>Звонков</th>
+                            <th>Канал</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${projectsWithCalls.map(p => `
+                            <tr>
+                                <td>${p.name}</td>
+                                <td>${p.calls}</td>
+                                <td>${channelName}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : `
+                <div style="text-align: center; opacity: 0.7; padding: 40px; font-style: italic;">
                     Нет звонков за смену
                 </div>
-            ` : ''}
-        </div>
-        
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(212, 175, 55, 0.2);">
-            <div style="font-weight: 600; color: var(--accent);">Всего звонков: ${totalCalls}</div>
+            `}
         </div>
     `;
     
     elements.reportModal.classList.add('active');
+  }
+
+  function exportToCSV() {
+    const channelName = state.channel === 'Call Back' ? 'CallBack' : 'HotLine';
+    const rows = [['Проект', 'Звонки', 'Канал']];
+    
+    state.projects.forEach(p => {
+      if (p.calls > 0) {
+        rows.push([p.name, p.calls, channelName]);
+      }
+    });
+    
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `отчет_${state.operator}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function openEditCallsModal(projectName) {
@@ -327,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const newCalls = parseInt(elements.editCallsInput.value) || 0;
       if (newCalls >= 0) {
         state.editingProject.calls = newCalls;
-        saveState();
+        saveStateDebounced();
         renderProjects();
         elements.editCallsModal.classList.remove('active');
         state.editingProject = null;
@@ -341,28 +479,25 @@ document.addEventListener('DOMContentLoaded', function () {
     state.projects.forEach(p => {
       p.calls = 0;
       p.status = 'inactive';
-      localStorage.removeItem(`calls_${p.name}`);
-      localStorage.removeItem(`status_${p.name}`);
     });
     
-    Object.assign(state, {
-      shiftStartTime: 0,
-      callStartTime: 0,
-      pauseStartTime: 0,
-      totalPausedTime: 0,
-      currentCall: null,
-      shiftActive: false,
-      shiftPaused: false
-    });
-    
-    ['shiftActive','shiftStartTime','shiftPaused','pauseStartTime','totalPausedTime','currentCall','callStartTime']
-      .forEach(k => localStorage.removeItem(k));
+    state.shiftStartTime = 0;
+    state.shiftElapsed = 0;
+    state.callStartTime = 0;
+    state.callElapsed = 0;
+    state.pauseStartTime = 0;
+    state.pauseElapsed = 0;
+    state.pauseTotalElapsed = 0;
+    state.currentCall = null;
+    state.shiftActive = false;
+    state.shiftPaused = false;
     
     elements.shiftTimer.textContent = '00:00:00';
     elements.callTimer.textContent = '00:00:00';
+    elements.pauseTotalTimer.textContent = '00:00:00';
     elements.pauseTimer.textContent = '00:00';
     
-    saveState();
+    saveStateDebounced();
     renderProjects();
     updateStatusIndicator();
     elements.startShiftBtn.disabled = false;
@@ -398,9 +533,6 @@ document.addEventListener('DOMContentLoaded', function () {
       deleteBtn.className = 'delete-project-btn';
       deleteBtn.onclick = () => {
         if (state.projects.length > 1) {
-          localStorage.removeItem(`calls_${project.name}`);
-          localStorage.removeItem(`status_${project.name}`);
-          
           state.projects.splice(index, 1);
           renderProjectsEditList();
         } else {
@@ -420,19 +552,11 @@ document.addEventListener('DOMContentLoaded', function () {
     inputs.forEach((input, index) => {
       const newName = input.value.trim();
       if (newName && state.projects[index]) {
-        if (state.projects[index].name !== newName) {
-          localStorage.setItem(`calls_${newName}`, state.projects[index].calls);
-          localStorage.setItem(`status_${newName}`, state.projects[index].status);
-          
-          localStorage.removeItem(`calls_${state.projects[index].name}`);
-          localStorage.removeItem(`status_${state.projects[index].name}`);
-          
-          state.projects[index].name = newName;
-        }
+        state.projects[index].name = newName;
       }
     });
     
-    saveState();
+    saveStateDebounced();
     renderProjects();
     elements.editProjectsModal.classList.remove('active');
   }
@@ -447,101 +571,163 @@ document.addEventListener('DOMContentLoaded', function () {
     renderProjectsEditList();
   }
 
-  // Обработчики событий
-  elements.loginButton.addEventListener('click', handleLogin);
-  elements.operatorInput.addEventListener('keypress', e => e.key === 'Enter' && handleLogin());
-  elements.startShiftBtn.addEventListener('click', startShift);
-  elements.endShiftBtn.addEventListener('click', endShift);
-  elements.pauseShiftBtn.addEventListener('click', togglePause);
-  elements.channelToggleBtn.addEventListener('click', toggleChannel);
-  elements.endPauseBtn.addEventListener('click', endPause);
-  elements.closeReportBtn.addEventListener('click', closeReport);
-  elements.editProjectsBtn.addEventListener('click', openEditProjectsModal);
-  elements.addProjectBtn.addEventListener('click', addNewProject);
-  elements.saveProjectsBtn.addEventListener('click', saveProjects);
-  elements.cancelEditBtn.addEventListener('click', () => {
-    elements.editProjectsModal.classList.remove('active');
-  });
-  elements.saveCallsBtn.addEventListener('click', saveEditedCalls);
-  elements.cancelEditCallsBtn.addEventListener('click', () => {
-    elements.editCallsModal.classList.remove('active');
-    state.editingProject = null;
-  });
-  elements.editCallsInput.addEventListener('keypress', e => {
-    if (e.key === 'Enter') saveEditedCalls();
-  });
+  function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 100px;
+      right: 20px;
+      background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--accent)'};
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 3000;
+      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+      max-width: 300px;
+      font-weight: 500;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 3000);
+  }
 
-  elements.editProjectsModal.addEventListener('click', (e) => {
-    if (e.target === elements.editProjectsModal) {
-      elements.editProjectsModal.classList.remove('active');
-    }
-  });
-
-  elements.editCallsModal.addEventListener('click', (e) => {
-    if (e.target === elements.editCallsModal) {
-      elements.editCallsModal.classList.remove('active');
-      state.editingProject = null;
-    }
-  });
-
-  elements.projectsContainer.addEventListener('click', e => {
-    const btn = e.target.closest('.project-btn');
-    if (btn && !btn.disabled) {
-      const name = btn.dataset.project;
-      const project = state.projects.find(p => p.name === name);
-      
-      if (project) {
-        if (project.status === 'active') {
-          project.status = 'inactive';
-          project.calls++;
-          stopTimer('call');
-          state.currentCall = null;
-          elements.callTimer.textContent = '00:00:00';
-          elements.callTimer.parentElement.classList.remove('active');
-        } else {
-          state.projects.forEach(p => p.status = 'inactive');
-          project.status = 'active';
-          state.currentCall = name;
-          state.callStartTime = Date.now();
-          startTimer('call');
-          elements.callTimer.parentElement.classList.add('active');
-        }
-        
-        saveState();
-        renderProjects();
-        updateStatusIndicator();
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
       }
     }
     
-    const editBtn = e.target.closest('.edit-calls-btn');
-    if (editBtn) {
-      const projectName = editBtn.dataset.project;
-      openEditCallsModal(projectName);
+    @keyframes fadeOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
     }
-  });
+  `;
+  document.head.appendChild(style);
 
-  // Автоинициализация
-  if (state.operator) {
-    elements.operatorName.textContent = state.operator;
-    elements.loginModal.classList.remove('active');
-    elements.app.style.display = 'block';
-    elements.startShiftBtn.disabled = state.shiftActive;
+  function init() {
+    loadState();
     
-    if (state.shiftActive && !state.shiftPaused) {
-      const currentTime = Date.now();
-      const elapsed = currentTime - state.shiftStartTime - state.totalPausedTime;
-      state.shiftStartTime = currentTime - elapsed;
+    elements.loginButton.addEventListener('click', handleLogin);
+    elements.operatorInput.addEventListener('keypress', e => e.key === 'Enter' && handleLogin());
+    elements.startShiftBtn.addEventListener('click', startShift);
+    elements.endShiftBtn.addEventListener('click', showEndShiftConfirmation);
+    elements.pauseShiftBtn.addEventListener('click', togglePause);
+    elements.channelToggleBtn.addEventListener('click', toggleChannel);
+    elements.endPauseBtn.addEventListener('click', endPause);
+    elements.closeReportBtn.addEventListener('click', closeReport);
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    elements.editProjectsBtn.addEventListener('click', openEditProjectsModal);
+    elements.addProjectBtn.addEventListener('click', addNewProject);
+    elements.saveProjectsBtn.addEventListener('click', saveProjects);
+    elements.cancelEditBtn.addEventListener('click', () => {
+      elements.editProjectsModal.classList.remove('active');
+    });
+    elements.saveCallsBtn.addEventListener('click', saveEditedCalls);
+    elements.cancelEditCallsBtn.addEventListener('click', () => {
+      elements.editCallsModal.classList.remove('active');
+      state.editingProject = null;
+    });
+    elements.editCallsInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') saveEditedCalls();
+    });
+    elements.confirmChannelChange.addEventListener('click', confirmChannelChange);
+    elements.cancelChannelChange.addEventListener('click', cancelChannelChange);
+    elements.confirmEndShift.addEventListener('click', confirmEndShift);
+    elements.cancelEndShift.addEventListener('click', cancelEndShift);
+
+    elements.editProjectsModal.addEventListener('click', (e) => {
+      if (e.target === elements.editProjectsModal) {
+        elements.editProjectsModal.classList.remove('active');
+      }
+    });
+
+    elements.editCallsModal.addEventListener('click', (e) => {
+      if (e.target === elements.editCallsModal) {
+        elements.editCallsModal.classList.remove('active');
+        state.editingProject = null;
+      }
+    });
+
+    elements.confirmChannelModal.addEventListener('click', (e) => {
+      if (e.target === elements.confirmChannelModal) {
+        cancelChannelChange();
+      }
+    });
+
+    elements.confirmEndShiftModal.addEventListener('click', (e) => {
+      if (e.target === elements.confirmEndShiftModal) {
+        cancelEndShift();
+      }
+    });
+
+    elements.projectsContainer.addEventListener('click', e => {
+      const btn = e.target.closest('.project-btn');
+      if (btn && !btn.disabled) {
+        const name = btn.dataset.project;
+        const project = state.projects.find(p => p.name === name);
+        
+        if (project) {
+          if (project.status === 'active') {
+            project.status = 'inactive';
+            project.calls++;
+            state.currentCall = null;
+            state.callElapsed = 0;
+          } else {
+            state.projects.forEach(p => p.status = 'inactive');
+            project.status = 'active';
+            state.currentCall = name;
+            state.callStartTime = Date.now();
+            state.callElapsed = 0;
+          }
+          
+          saveStateDebounced();
+          renderProjects();
+          updateStatusIndicator();
+        }
+      }
       
-      startTimer('shift');
-      elements.shiftTimer.parentElement.classList.add('active');
+      const editBtn = e.target.closest('.edit-calls-btn');
+      if (editBtn) {
+        const projectName = editBtn.dataset.project;
+        openEditCallsModal(projectName);
+      }
+    });
+
+    if (state.operator) {
+      elements.operatorName.textContent = state.operator;
+      elements.loginModal.classList.remove('active');
+      elements.app.style.display = 'block';
+      elements.startShiftBtn.disabled = state.shiftActive;
+      elements.channelToggleBtn.textContent = state.channel;
+      
+      if (state.shiftActive) {
+        startMainTimer();
+      }
+      
+      renderProjects();
+      updateStatusIndicator();
     }
-    
-    if (state.currentCall) {
-      startTimer('call');
-      elements.callTimer.parentElement.classList.add('active');
-    }
-    
-    renderProjects();
-    updateStatusIndicator();
   }
+
+  init();
 });
