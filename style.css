@@ -1,0 +1,738 @@
+:root {
+  --bg-dark: #0a0a0a;
+  --bg-card: #151515;
+  --text-light: #f0f0f0;
+  --accent: #d4af37;
+  --accent-hover: #ffd700;
+  --shadow: rgba(0, 0, 0, 0.6);
+  --success: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --transition: all 0.3s ease;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background: url('gedjifero-bg.png') center/cover no-repeat fixed;
+  color: var(--text-light);
+  padding-top: 90px;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Затемнение фона для лучшей читаемости */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 10, 10, 0.85);
+  z-index: -1;
+}
+
+/* === Шапка === */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 30px;
+  background: rgba(10, 10, 10, 0.95);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  height: 80px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.logo-img {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
+}
+
+.header-left h1 {
+  font-size: 22px;
+  color: var(--accent);
+  font-weight: 500;
+  display: none;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  position: relative;
+}
+
+.operator-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.status-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #555;
+  margin-right: 10px;
+  transition: var(--transition);
+}
+
+.status-indicator.active {
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+
+.status-indicator.paused {
+  background: var(--warning);
+  box-shadow: 0 0 8px var(--warning);
+}
+
+.status-indicator.active-call {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.status-indicator.inactive {
+  background: #555;
+}
+
+.btn-shift,
+.btn-channel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 30px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+  border: 1px solid transparent;
+  font-size: 14px;
+}
+
+.btn-shift {
+  background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+  color: var(--accent);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.btn-shift:hover {
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+#start-shift:hover {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+#end-shift:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+#pause-shift-btn:hover {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.btn-channel {
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+.btn-channel:hover {
+  background: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+.btn-edit {
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: var(--accent);
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 16px;
+}
+
+.btn-edit:hover {
+  background: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+/* === Таймеры === */
+.timers {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.timer-card {
+  background: linear-gradient(145deg, rgba(21, 21, 21, 0.8), rgba(15, 15, 15, 0.8));
+  padding: 20px 40px;
+  border-radius: 16px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  transition: var(--transition);
+  backdrop-filter: blur(10px);
+}
+
+.timer-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.timer-card span:first-child {
+  font-size: 16px;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.timer-value {
+  font-size: 28px;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 15px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.timer-card.active .timer-value {
+  color: var(--accent);
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+  animation: pulse 1.5s infinite alternate;
+}
+
+@keyframes pulse {
+  0% {
+    text-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
+  }
+  100% {
+    text-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
+  }
+}
+
+/* === Проекты === */
+.projects-section {
+  padding: 0 30px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.projects-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  background: rgba(10, 10, 10, 0.5);
+  border-radius: 12px;
+}
+
+.projects-header h2 {
+  font-size: 24px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+#project-count {
+  background: rgba(212, 175, 55, 0.1);
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 25px;
+}
+
+.project-card {
+  background: rgba(20, 20, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 25px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(212, 175, 55, 0.2);
+  transition: background 0.3s ease;
+}
+
+.project-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.3);
+}
+
+.project-card:hover::before {
+  background: var(--accent);
+}
+
+.project-card h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.project-card > div {
+  margin-bottom: 10px;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.project-btn {
+  padding: 12px 0;
+  font-size: 15px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  width: 100%;
+  margin-top: 15px;
+  transition: var(--transition);
+  font-weight: 600;
+  position: relative;
+}
+
+.project-btn:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+}
+
+.project-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #555;
+  color: #777;
+}
+
+.project-btn:disabled:hover::after {
+  content: attr(title);
+  position: absolute;
+  background: #222;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  top: -45px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 10;
+  border: 1px solid #444;
+}
+
+.active-call-card {
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+.active-call-card::before {
+  background: var(--accent);
+}
+
+.active-call-card .project-btn {
+  background: rgba(212, 175, 55, 0.1);
+  color: #fff;
+}
+
+/* === Модальные окна === */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s ease;
+}
+
+.modal.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.login-modal-content {
+  background: linear-gradient(145deg, rgba(21, 21, 21, 0.95), rgba(13, 13, 13, 0.95));
+  padding: 40px;
+  border-radius: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  text-align: center;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  transform: translateY(30px);
+  transition: all 0.4s ease;
+  backdrop-filter: blur(10px);
+}
+
+.modal.active .login-modal-content {
+  transform: translateY(0);
+}
+
+.login-modal-content h2 {
+  font-size: 28px;
+  margin-bottom: 25px;
+  color: var(--accent);
+}
+
+.login-modal-content input {
+  width: 100%;
+  margin: 15px 0;
+  padding: 15px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  font-size: 16px;
+  transition: var(--transition);
+}
+
+.login-modal-content input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.3);
+}
+
+#login-button {
+  background: linear-gradient(145deg, #d4af37, #b89527);
+  color: #111;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 15px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 12px;
+  transition: var(--transition);
+}
+
+#login-button:hover {
+  background: linear-gradient(145deg, #ffd700, #d4af37);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
+}
+
+/* === Стили для редактирования проектов === */
+.project-input {
+  width: 100%;
+  padding: 12px 15px;
+  margin: 8px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 14px;
+}
+
+.project-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.delete-project-btn {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  color: #e74c3c;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: var(--transition);
+  margin-left: 10px;
+}
+
+.delete-project-btn:hover {
+  background: rgba(231, 76, 60, 0.2);
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+}
+
+/* === Модалка паузы === */
+#pause-modal .login-modal-content {
+  max-width: 600px;
+  padding: 50px;
+}
+
+#pause-modal h2 {
+  font-size: 42px;
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+
+#pause-timer {
+  font-size: 100px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  margin: 30px 0;
+  color: var(--accent);
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+  animation: pulse 1.5s infinite alternate;
+}
+
+#end-pause-btn {
+  font-size: 20px;
+  padding: 15px 40px;
+  background: linear-gradient(145deg, #d4af37, #b89527);
+  color: #111;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+#end-pause-btn:hover {
+  background: linear-gradient(145deg, #ffd700, #d4af37);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+  transform: scale(1.05);
+}
+
+/* === Модалка отчета === */
+#report-modal .login-modal-content {
+  max-width: 800px;
+  padding: 40px;
+}
+
+#report-modal h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 32px;
+  margin-bottom: 25px;
+}
+
+#report-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  margin-bottom: 25px;
+}
+
+.report-header {
+  text-align: center;
+  margin-bottom: 25px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.report-header h2 {
+  font-size: 26px;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.report-header p {
+  margin: 8px 0;
+  font-size: 16px;
+}
+
+.report-header strong {
+  color: var(--accent);
+  min-width: 140px;
+  display: inline-block;
+  text-align: right;
+  margin-right: 10px;
+}
+
+.report-projects {
+  margin-top: 25px;
+}
+
+.report-projects h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  color: var(--accent);
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: rgba(212, 175, 55, 0.1);
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+}
+
+td {
+  padding: 12px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+tr:hover td {
+  background: rgba(212, 175, 55, 0.05);
+}
+
+/* === Адаптивность === */
+@media (max-width: 1200px) {
+  .projects-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .header {
+    flex-direction: column;
+    height: auto;
+    padding: 15px;
+    gap: 15px;
+  }
+
+  .header-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .timers {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .timer-card {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  body {
+    padding-top: 160px;
+  }
+}
+
+@media (max-width: 768px) {
+  .projects-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+  }
+
+  .btn-shift,
+  .btn-channel {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  #pause-modal h2 {
+    font-size: 32px;
+  }
+
+  #pause-timer {
+    font-size: 70px;
+  }
+
+  .logo-img {
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-modal-content {
+    padding: 25px;
+  }
+
+  #pause-modal .login-modal-content {
+    padding: 30px;
+  }
+
+  #pause-timer {
+    font-size: 50px;
+  }
+
+  .report-header strong {
+    min-width: 100px;
+  }
+
+  .header-right {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .operator-info {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.edit-calls-btn {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 16px;
+}
+
+.edit-calls-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.project-card > div {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.project-card .project-btn {
+  flex: 1;
+  margin-top: 0;
+}

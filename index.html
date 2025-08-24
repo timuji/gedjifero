@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GEDJIFERO</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="logo.ico" type="image/x-icon">
+</head>
+<body>
+  <div class="modal active" id="login-modal">
+    <div class="login-modal-content">
+      <h2>Введите имя оператора</h2>
+      <input id="operator-name-input" placeholder="Ваше имя" autofocus>
+      <button id="login-button">Войти</button>
+    </div>
+  </div>
+
+  <div id="app" style="display:none;">
+    <header class="header">
+      <div class="header-left">
+        <div class="logo-container">
+          <img src="logo-logo.png" alt="GEDJIFERO" class="logo-img">
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="status-indicator"></div>
+        <div class="operator-info">
+          <span>Оператор: <strong id="operator-name">—</strong></span>
+        </div>
+        <button id="start-shift" class="btn-shift">Начать смену</button>
+        <button id="end-shift" class="btn-shift">Завершить смену</button>
+        <button id="pause-shift-btn" class="btn-shift">⏸ Пауза</button>
+        <button id="channel-toggle-button" class="btn-channel">Call Back</button>
+      </div>
+    </header>
+
+    <div class="container">
+      <section class="timers">
+        <div class="timer-card"><span>Смена</span><span id="shift-timer" class="timer-value">00:00:00</span></div>
+        <div class="timer-card"><span>Звонок</span><span id="call-timer" class="timer-value">00:00:00</span></div>
+      </section>
+
+      <section class="projects-section">
+        <div class="projects-header">
+          <h2>Проекты</h2>
+          <button id="edit-projects-btn" class="btn-edit">✏️</button>
+          <span id="project-count">Проектов: 20</span>
+        </div>
+        <div class="projects-grid" id="projects-container"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="pause-modal" class="modal">
+    <div class="login-modal-content">
+      <h2>⏸ ПЕРЕРЫВ</h2>
+      <div id="pause-timer">00:00</div>
+      <button id="end-pause-btn" class="btn-shift">Завершить</button>
+    </div>
+  </div>
+
+  <div id="report-modal" class="modal">
+    <div class="login-modal-content">
+      <h2>🧾 Отчёт</h2>
+      <div id="report-body"></div>
+      <button id="close-report" class="btn-shift">Закрыть</button>
+    </div>
+  </div>
+
+  <div id="edit-projects-modal" class="modal">
+    <div class="login-modal-content">
+      <h2>✏️ Редактирование проектов</h2>
+      <div id="projects-edit-container" style="max-height: 400px; overflow-y: auto; margin: 20px 0;"></div>
+      <button id="add-project-btn" class="btn-shift" style="margin-bottom: 15px;">+ Добавить проект</button>
+      <div style="display: flex; gap: 10px;">
+        <button id="save-projects-btn" class="btn-shift">Сохранить</button>
+        <button id="cancel-edit-btn" class="btn-shift" style="background: #666;">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Добавить перед закрывающим тегом body -->
+<div id="edit-calls-modal" class="modal">
+  <div class="login-modal-content">
+    <h2>✏️ Изменить количество звонков</h2>
+    <div style="margin: 20px 0;">
+      <div style="font-size: 18px; margin-bottom: 10px; color: var(--accent);">
+        Проект: <strong id="edit-calls-project-name"></strong>
+      </div>
+      <input 
+        id="edit-calls-input" 
+        type="number" 
+        min="0" 
+        placeholder="Введите количество звонков"
+        style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: white; font-size: 16px;"
+      >
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button id="save-calls-btn" class="btn-shift">Сохранить</button>
+      <button id="cancel-edit-calls-btn" class="btn-shift" style="background: #666;">Отмена</button>
+    </div>
+  </div>
+</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
