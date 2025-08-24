@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GEDJIFERO - Система учета времени</title>
+  <title>Pulse</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏱️</text></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <div class="modal active" id="login-modal">
@@ -76,7 +77,7 @@
       <h2>🧾 Отчёт</h2>
       <div id="report-body"></div>
       <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-        <button id="export-csv" class="btn-shift">📊 Экспорт CSV</button>
+        <button id="export-pdf" class="btn-shift">📊 Экспорт PDF</button>
         <button id="close-report" class="btn-shift">Закрыть</button>
       </div>
     </div>
@@ -123,23 +124,23 @@
     </div>
   </div>
 
-  <div id="confirm-channel-modal" class="modal">
-    <div class="login-modal-content">
-      <div style="text-align: center; margin-bottom: 25px;">
-        <div style="font-size: 48px; margin-bottom: 15px;">🔁</div>
-        <h2 style="color: var(--accent); margin-bottom: 10px;">Сменить канал?</h2>
-        <p style="opacity: 0.8; line-height: 1.5;">
-          Вы уверены, что хотите сменить канал с 
-          <span id="current-channel-name" style="color: var(--accent); font-weight: 600;">Call Back</span> на 
-          <span id="new-channel-name" style="color: var(--warning); font-weight: 600;">Hot Line</span>?
-        </p>
-      </div>
-      <div style="display: flex; gap: 15px; justify-content: center;">
-        <button id="confirm-channel-change" class="btn-shift" style="background: linear-gradient(145deg, #27ae60, #219a52);">Да, сменить</button>
-        <button id="cancel-channel-change" class="btn-shift" style="background: #666;">Отмена</button>
-      </div>
+<div id="confirm-channel-modal" class="modal">
+  <div class="login-modal-content">
+    <div style="text-align: center; margin-bottom: 25px;">
+      <div style="font-size: 48px; margin-bottom: 15px;">🔁</div>
+      <h2 style="color: var(--accent); margin-bottom: 10px;">Сменить канал?</h2>
+      <p style="opacity: 0.8; line-height: 1.5;">
+        Вы уверены, что хотите сменить канал с 
+        <span id="current-channel-name" style="color: var(--accent); font-weight: 600;">Call Back</span> на 
+        <span id="new-channel-name" style="color: var(--warning); font-weight: 600;">Hot Line</span>?
+      </p>
+    </div>
+    <div style="display: flex; gap: 15px; justify-content: center;">
+      <button id="confirm-channel-change" class="btn-shift" style="background: linear-gradient(145deg, #27ae60, #219a52);">Да, сменить</button>
+      <button id="cancel-channel-change" class="btn-shift" style="background: #666;">Отмена</button>
     </div>
   </div>
+</div>
 
   <div id="confirm-end-shift-modal" class="modal">
     <div class="login-modal-content">
