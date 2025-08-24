@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
     reportModal: document.getElementById('report-modal'),
     reportBody: document.getElementById('report-body'),
     closeReportBtn: document.getElementById('close-report'),
-    exportCsvBtn: document.getElementById('export-csv'),
+    exportPdfBtn: document.getElementById('export-pdf'),
     statusIndicator: document.querySelector('.status-indicator'),
     editProjectsBtn: document.getElementById('edit-projects-btn'),
     editProjectsModal: document.getElementById('edit-projects-modal'),
@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', function () {
     callStartTime: 0,
     callElapsed: 0,
     channel: 'Call Back',
+    channels: ['Call Back', 'Hot Line'], // ТОЛЬКО 2 канала!
     projects: [],
     mainTimer: null,
     editingProject: null,
@@ -84,72 +85,43 @@ document.addEventListener('DOMContentLoaded', function () {
     return `${h}:${m}:${s}`;
   }
 
+  function formatTimeShort(seconds) {
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
   function loadState() {
     try {
       const saved = localStorage.getItem('gedjifero_state');
       if (saved) {
         const data = JSON.parse(saved);
+        Object.assign(state, data);
         
-        state.operator = data.operator || null;
-        state.shiftActive = data.shiftActive || false;
-        state.shiftStartTime = data.shiftStartTime || 0;
-        state.shiftElapsed = data.shiftElapsed || 0;
-        state.shiftPaused = data.shiftPaused || false;
-        state.pauseStartTime = data.pauseStartTime || 0;
-        state.pauseElapsed = data.pauseElapsed || 0;
-        state.pauseTotalElapsed = data.pauseTotalElapsed || 0;
-        state.currentCall = data.currentCall || null;
-        state.callStartTime = data.callStartTime || 0;
-        state.callElapsed = data.callElapsed || 0;
-        state.channel = data.channel || 'Call Back';
-        state.projects = data.projects || [];
-        
+        // Восстановление состояния после перезагрузки
         if (state.shiftActive && !state.shiftPaused) {
-          const currentTime = Date.now();
-          const elapsed = currentTime - state.shiftStartTime;
-          state.shiftStartTime = currentTime - state.shiftElapsed;
-          state.shiftElapsed = elapsed;
+          const now = Date.now();
+          const elapsedSinceLastUpdate = now - state.lastUpdate;
+          state.shiftElapsed += elapsedSinceLastUpdate;
+          if (state.currentCall) {
+            state.callElapsed += elapsedSinceLastUpdate;
+          }
+          startMainTimer();
         }
       } else {
         for (let i = 1; i <= 5; i++) {
-          state.projects.push({
-            name: `Проект ${i}`,
-            calls: 0,
-            status: 'inactive'
-          });
+          state.projects.push({ name: `Проект ${i}`, calls: 0, status: 'inactive' });
         }
       }
     } catch (e) {
       console.error('Ошибка загрузки:', e);
-      for (let i = 1; i <= 5; i++) {
-        state.projects.push({
-          name: `Проект ${i}`,
-          calls: 0,
-          status: 'inactive'
-        });
-      }
     }
   }
 
   const saveStateDebounced = debounce(() => {
     try {
-      const data = {
-        operator: state.operator,
-        shiftActive: state.shiftActive,
-        shiftStartTime: state.shiftStartTime,
-        shiftElapsed: state.shiftElapsed,
-        shiftPaused: state.shiftPaused,
-        pauseStartTime: state.pauseStartTime,
-        pauseElapsed: state.pauseElapsed,
-        pauseTotalElapsed: state.pauseTotalElapsed,
-        currentCall: state.currentCall,
-        callStartTime: state.callStartTime,
-        callElapsed: state.callElapsed,
-        channel: state.channel,
-        projects: state.projects
-      };
-      
-      localStorage.setItem('gedjifero_state', JSON.stringify(data));
+      state.lastUpdate = Date.now();
+      localStorage.setItem('gedjifero_state', JSON.stringify(state));
     } catch (e) {
       console.error('Ошибка сохранения:', e);
       if (e.name === 'QuotaExceededError') {
@@ -168,9 +140,18 @@ document.addEventListener('DOMContentLoaded', function () {
     else ind.classList.add('active');
   }
 
+  function updateChannelButton() {
+    elements.channelToggleBtn.textContent = state.channel;
+    
+    // Добавляем иконку в зависимости от канала
+    let icon = '📞';
+    if (state.channel === 'Hot Line') icon = '🔥';
+    
+    elements.channelToggleBtn.innerHTML = `${icon} ${state.channel}`;
+  }
+
   function renderProjects() {
     const fragment = document.createDocumentFragment();
-    
     state.projects.forEach(project => {
       const card = document.createElement('div');
       card.className = `project-card ${project.status === 'active' ? 'active-call-card' : ''}`;
@@ -178,7 +159,6 @@ document.addEventListener('DOMContentLoaded', function () {
       const reason = !state.shiftActive ? 'Смена не начата' :
                      state.shiftPaused ? 'Смена на паузе' :
                      state.currentCall && state.currentCall !== project.name ? 'Завершите текущий звонок' : '';
-      
       card.innerHTML = `
         <h3>${project.name}</h3>
         <div>Звонков: ${project.calls}</div>
@@ -187,28 +167,40 @@ document.addEventListener('DOMContentLoaded', function () {
           <button class="project-btn" data-project="${project.name}" ${disabled ? `disabled title="${reason}"` : ''}>
             ${project.status === 'active' ? 'Завершить' : 'Начать звонок'}
           </button>
-          <button class="edit-calls-btn" data-project="${project.name}" title="Изменить количество звонков">
-            ✏️
-          </button>
+          <button class="edit-calls-btn" data-project="${project.name}" title="Изменить количество звонков">✏️</button>
         </div>
       `;
       fragment.appendChild(card);
     });
-    
     elements.projectsContainer.innerHTML = '';
     elements.projectsContainer.appendChild(fragment);
     elements.projectCount.textContent = `Проектов: ${state.projects.length}`;
   }
 
+  function renderProjectsEdit() {
+    elements.projectsEditContainer.innerHTML = '';
+    state.projects.forEach((project, index) => {
+      const projectDiv = document.createElement('div');
+      projectDiv.style.marginBottom = '15px';
+      projectDiv.style.padding = '10px';
+      projectDiv.style.background = 'rgba(0,0,0,0.2)';
+      projectDiv.style.borderRadius = '8px';
+      projectDiv.innerHTML = `
+        <input type="text" class="project-input" value="${project.name}" data-index="${index}" 
+               placeholder="Название проекта" style="margin-bottom: 5px;">
+        <button class="delete-project-btn" data-index="${index}" title="Удалить проект">🗑️</button>
+      `;
+      elements.projectsEditContainer.appendChild(projectDiv);
+    });
+  }
+
   function startMainTimer() {
     stopMainTimer();
     state.lastUpdate = Date.now();
-    
     state.mainTimer = setInterval(() => {
       const now = Date.now();
       const delta = now - state.lastUpdate;
       state.lastUpdate = now;
-      
       updateTimers(delta);
     }, 100);
   }
@@ -240,11 +232,9 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.pauseTotalTimer.textContent = formatTime(Math.floor(state.pauseTotalElapsed / 1000));
     
     if (state.shiftPaused) {
-      state.pauseElapsed += delta;
-      const currentPauseSeconds = Math.floor((state.pauseElapsed - state.pauseTotalElapsed) / 1000);
-      const minutes = String(Math.floor(currentPauseSeconds / 60)).padStart(2, '0');
-      const seconds = String(currentPauseSeconds % 60).padStart(2, '0');
-      elements.pauseTimer.textContent = `${minutes}:${seconds}`;
+      const currentPauseTime = Date.now() - state.pauseStartTime;
+      const currentPauseSeconds = Math.floor(currentPauseTime / 1000);
+      elements.pauseTimer.textContent = formatTimeShort(currentPauseSeconds);
       elements.pauseTotalTimer.parentElement.classList.add('paused');
     } else {
       elements.pauseTotalTimer.parentElement.classList.remove('paused');
@@ -261,6 +251,7 @@ document.addEventListener('DOMContentLoaded', function () {
     saveStateDebounced();
     renderProjects();
     updateStatusIndicator();
+    updateChannelButton();
     elements.startShiftBtn.disabled = state.shiftActive;
   }
 
@@ -269,13 +260,12 @@ document.addEventListener('DOMContentLoaded', function () {
       alert("Сначала введите имя оператора!");
       return;
     }
-    
     state.shiftActive = true;
     state.shiftStartTime = Date.now();
     state.shiftElapsed = 0;
     state.pauseTotalElapsed = 0;
+    state.pauseElapsed = 0;
     state.shiftPaused = false;
-    
     startMainTimer();
     elements.startShiftBtn.disabled = true;
     saveStateDebounced();
@@ -283,43 +273,44 @@ document.addEventListener('DOMContentLoaded', function () {
     updateStatusIndicator();
   }
 
-  function endShift() {
-    stopMainTimer();
+  function pauseShift() {
+    if (!state.shiftActive || state.shiftPaused) return;
     
-    if (state.currentCall) {
-      const project = state.projects.find(p => p.name === state.currentCall);
-      if (project) {
-        project.status = 'inactive';
-        project.calls++;
-      }
-    }
-    
-    showReport();
-    state.currentCall = null;
-    state.callElapsed = 0;
+    state.shiftPaused = true;
+    state.pauseStartTime = Date.now();
+    elements.pauseModal.classList.add('active');
+    updateStatusIndicator();
     saveStateDebounced();
   }
 
-  function toggleChannel() {
-    const newChannel = state.channel === 'Call Back' ? 'Hot Line' : 'Call Back';
+  function endPause() {
+    if (!state.shiftPaused) return;
     
+    const now = Date.now();
+    const pauseDuration = now - state.pauseStartTime;
+    state.pauseTotalElapsed += pauseDuration;
+    state.pauseElapsed = state.pauseTotalElapsed;
+    state.shiftPaused = false;
+    
+    elements.pauseModal.classList.remove('active');
+    updateStatusIndicator();
+    saveStateDebounced();
+  }
+
+  function showChannelChangeConfirmation(newChannel) {
     elements.currentChannelName.textContent = state.channel;
     elements.newChannelName.textContent = newChannel;
     elements.confirmChannelModal.classList.add('active');
-    
     state.pendingChannelChange = newChannel;
   }
 
   function confirmChannelChange() {
     if (state.pendingChannelChange) {
       state.channel = state.pendingChannelChange;
-      elements.channelToggleBtn.textContent = state.channel;
-      saveStateDebounced();
+      updateChannelButton();
       renderProjects();
-      
-      showNotification(`Канал изменен на: ${state.channel}`, 'success');
+      saveStateDebounced();
     }
-    
     elements.confirmChannelModal.classList.remove('active');
     state.pendingChannelChange = null;
   }
@@ -329,40 +320,44 @@ document.addEventListener('DOMContentLoaded', function () {
     state.pendingChannelChange = null;
   }
 
-  function togglePause() {
-    if (state.shiftPaused) endPause();
-    else startPause();
+  function toggleChannel() {
+    if (!state.shiftActive) {
+      alert("Сначала начните смену!");
+      return;
+    }
+    
+    if (state.currentCall) {
+      alert("Завершите текущий звонок перед сменой канала!");
+      return;
+    }
+    
+    const currentIndex = state.channels.indexOf(state.channel);
+    const nextIndex = (currentIndex + 1) % state.channels.length;
+    const newChannel = state.channels[nextIndex];
+    
+    showChannelChangeConfirmation(newChannel);
   }
 
-  function startPause() {
-    if (!state.shiftActive) return;
-    state.shiftPaused = true;
-    state.pauseStartTime = Date.now();
-    
-    elements.pauseModal.classList.add('active');
+  function endShift() {
+    stopMainTimer();
+    if (state.currentCall) {
+      const project = state.projects.find(p => p.name === state.currentCall);
+      if (project) {
+        project.status = 'inactive';
+        project.calls++;
+      }
+    }
+    showReport();
+    state.currentCall = null;
+    state.callElapsed = 0;
     saveStateDebounced();
-    renderProjects();
-    updateStatusIndicator();
-  }
-
-  function endPause() {
-    state.shiftPaused = false;
-    const pauseDuration = Date.now() - state.pauseStartTime;
-    state.pauseTotalElapsed += pauseDuration;
-    
-    elements.pauseModal.classList.remove('active');
-    
-    saveStateDebounced();
-    renderProjects();
-    updateStatusIndicator();
   }
 
   function showEndShiftConfirmation() {
-    const totalSeconds = Math.floor(state.shiftElapsed / 1000);
-    const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
+    if (!state.shiftActive) return;
     
-    elements.shiftDurationConfirm.textContent = formatTime(totalSeconds);
-    elements.totalCallsConfirm.textContent = totalCalls;
+    elements.shiftDurationConfirm.textContent = formatTime(Math.floor(state.shiftElapsed / 1000));
+    elements.totalCallsConfirm.textContent = state.projects.reduce((sum, p) => sum + p.calls, 0);
     elements.confirmEndShiftModal.classList.add('active');
   }
 
@@ -378,76 +373,111 @@ document.addEventListener('DOMContentLoaded', function () {
   function showReport() {
     const totalSeconds = Math.floor(state.shiftElapsed / 1000);
     const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
+    const currentDate = new Date().toLocaleDateString('ru-RU');
+    const startTime = new Date(Date.now() - state.shiftElapsed).toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    const endTime = new Date().toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
     
-    const formatDate = ts => {
-        const d = new Date(ts);
-        return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()}`;
-    };
-    
-    const currentDate = formatDate(Date.now());
-    const channelName = state.channel === 'Call Back' ? 'CallBack' : 'HotLine';
-    
-    const projectsWithCalls = state.projects.filter(p => p.calls > 0);
-    
-    elements.reportBody.innerHTML = `
-        <div class="report-header">
-            <h2>Отчет за ${currentDate}</h2>
-            <p><strong>Оператор:</strong> ${state.operator}</p>
-            <p><strong>Время смены:</strong> ${formatTime(totalSeconds)}</p>
-            <p><strong>Канал:</strong> ${channelName}</p>
-            <p><strong>Всего звонков:</strong> ${totalCalls}</p>
-        </div>
-        
-        <div class="report-projects">
-            <h3>Детализация по проектам</h3>
-            ${projectsWithCalls.length > 0 ? `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Проект</th>
-                            <th>Звонков</th>
-                            <th>Канал</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${projectsWithCalls.map(p => `
-                            <tr>
-                                <td>${p.name}</td>
-                                <td>${p.calls}</td>
-                                <td>${channelName}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            ` : `
-                <div style="text-align: center; opacity: 0.7; padding: 40px; font-style: italic;">
-                    Нет звонков за смену
-                </div>
-            `}
-        </div>
+    let reportHTML = `
+      <div style="font-size: 20px; margin-bottom: 20px;">${currentDate} ${startTime} - ${endTime} (${state.operator})</div>
     `;
     
-    elements.reportModal.classList.add('active');
-  }
-
-  function exportToCSV() {
-    const channelName = state.channel === 'Call Back' ? 'CallBack' : 'HotLine';
-    const rows = [['Проект', 'Звонки', 'Канал']];
-    
-    state.projects.forEach(p => {
-      if (p.calls > 0) {
-        rows.push([p.name, p.calls, channelName]);
+    state.projects.forEach(project => {
+      if (project.calls > 0) {
+        reportHTML += `
+          <div style="margin-bottom: 10px;">
+            <div><b>${project.name}</b></div>
+            <div>${state.channel} - ${project.calls}</div>
+          </div>
+        `;
       }
     });
     
-    const csv = rows.map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `отчет_${state.operator}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    if (state.projects.every(p => p.calls === 0)) {
+      reportHTML += `<div>Нет звонков за смену</div>`;
+    }
+    
+    elements.reportBody.innerHTML = reportHTML;
+    elements.reportModal.classList.add('active');
+  }
+
+  function exportToPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const totalSeconds = Math.floor(state.shiftElapsed / 1000);
+    const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
+    const currentDate = new Date().toLocaleDateString('ru-RU');
+    const startTime = new Date(Date.now() - state.shiftElapsed).toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    const endTime = new Date().toLocaleTimeString('ru-RU', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    
+    doc.setFontSize(16);
+    doc.text(`${currentDate} ${startTime} - ${endTime} (${state.operator})`, 105, 20, { align: 'center' });
+    doc.setFontSize(12);
+    
+    let y = 40;
+    state.projects.forEach(p => {
+      if (p.calls > 0) {
+        doc.text(`${p.name}`, 20, y);
+        doc.text(`${state.channel} - ${p.calls}`, 120, y);
+        y += 10;
+      }
+    });
+    
+    if (state.projects.every(p => p.calls === 0)) {
+      doc.text('Нет звонков за смену', 20, y);
+      y += 10;
+    }
+    
+    doc.text(`Всего звонков: ${totalCalls}`, 20, y + 15);
+    doc.text(`Время смены: ${formatTime(totalSeconds)}`, 20, y + 25);
+    doc.text(`Время пауз: ${formatTime(Math.floor(state.pauseTotalElapsed / 1000))}`, 20, y + 35);
+    
+    doc.save(`отчет_${state.operator}_${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+
+  function resetShiftData() {
+    state.projects.forEach(p => { p.calls = 0; p.status = 'inactive'; });
+    state.shiftStartTime = 0;
+    state.shiftElapsed = 0;
+    state.callStartTime = 0;
+    state.callElapsed = 0;
+    state.pauseStartTime = 0;
+    state.pauseElapsed = 0;
+    state.pauseTotalElapsed = 0;
+    state.currentCall = null;
+    state.shiftActive = false;
+    state.shiftPaused = false;
+    state.channel = 'Call Back';
+    elements.shiftTimer.textContent = '00:00:00';
+    elements.callTimer.textContent = '00:00:00';
+    elements.pauseTotalTimer.textContent = '00:00:00';
+    elements.pauseTimer.textContent = '00:00';
+    saveStateDebounced();
+    renderProjects();
+    updateStatusIndicator();
+    updateChannelButton();
+    elements.startShiftBtn.disabled = false;
+  }
+
+  function closeReport() {
+    elements.reportModal.classList.remove('active');
+    resetShiftData();
+    state.operator = null;
+    elements.operatorInput.value = '';
+    elements.loginModal.classList.add('active');
+    elements.app.style.display = 'none';
+    saveStateDebounced();
   }
 
   function openEditCallsModal(projectName) {
@@ -475,258 +505,145 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function resetShiftData() {
-    state.projects.forEach(p => {
-      p.calls = 0;
-      p.status = 'inactive';
-    });
-    
-    state.shiftStartTime = 0;
-    state.shiftElapsed = 0;
-    state.callStartTime = 0;
-    state.callElapsed = 0;
-    state.pauseStartTime = 0;
-    state.pauseElapsed = 0;
-    state.pauseTotalElapsed = 0;
-    state.currentCall = null;
-    state.shiftActive = false;
-    state.shiftPaused = false;
-    
-    elements.shiftTimer.textContent = '00:00:00';
-    elements.callTimer.textContent = '00:00:00';
-    elements.pauseTotalTimer.textContent = '00:00:00';
-    elements.pauseTimer.textContent = '00:00';
-    
-    saveStateDebounced();
-    renderProjects();
-    updateStatusIndicator();
-    elements.startShiftBtn.disabled = false;
-  }
-
-  function closeReport() {
-    elements.reportModal.classList.remove('active');
-    resetShiftData();
-  }
-
   function openEditProjectsModal() {
-    renderProjectsEditList();
+    renderProjectsEdit();
     elements.editProjectsModal.classList.add('active');
   }
 
-  function renderProjectsEditList() {
-    elements.projectsEditContainer.innerHTML = '';
-    
-    state.projects.forEach((project, index) => {
-      const projectDiv = document.createElement('div');
-      projectDiv.style.display = 'flex';
-      projectDiv.style.alignItems = 'center';
-      projectDiv.style.marginBottom = '10px';
-      
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = project.name;
-      input.className = 'project-input';
-      input.dataset.index = index;
-      
-      const deleteBtn = document.createElement('button');
-      deleteBtn.textContent = '🗑️';
-      deleteBtn.className = 'delete-project-btn';
-      deleteBtn.onclick = () => {
-        if (state.projects.length > 1) {
-          state.projects.splice(index, 1);
-          renderProjectsEditList();
-        } else {
-          alert('Должен остаться хотя бы один проект!');
-        }
-      };
-      
-      projectDiv.appendChild(input);
-      projectDiv.appendChild(deleteBtn);
-      elements.projectsEditContainer.appendChild(projectDiv);
-    });
+  function addNewProject() {
+    state.projects.push({ name: `Новый проект ${state.projects.length + 1}`, calls: 0, status: 'inactive' });
+    renderProjectsEdit();
+    saveStateDebounced();
   }
 
   function saveProjects() {
+    // Сохраняем изменения названий проектов
     const inputs = elements.projectsEditContainer.querySelectorAll('.project-input');
-    
-    inputs.forEach((input, index) => {
+    inputs.forEach(input => {
+      const index = parseInt(input.dataset.index);
       const newName = input.value.trim();
-      if (newName && state.projects[index]) {
+      if (newName && index >= 0 && index < state.projects.length) {
         state.projects[index].name = newName;
       }
     });
     
-    saveStateDebounced();
-    renderProjects();
     elements.editProjectsModal.classList.remove('active');
+    renderProjects();
+    saveStateDebounced();
   }
 
-  function addNewProject() {
-    const newProject = {
-      name: `Новый проект ${state.projects.length + 1}`,
-      calls: 0,
-      status: 'inactive'
-    };
-    state.projects.push(newProject);
-    renderProjectsEditList();
-  }
-
-  function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-      position: fixed;
-      top: 100px;
-      right: 20px;
-      background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--accent)'};
-      color: white;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-      z-index: 3000;
-      animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
-      max-width: 300px;
-      font-weight: 500;
-    `;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 3000);
-  }
-
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideIn {
-      from {
-        transform: translateX(100%);
-        opacity: 0;
-      }
-      to {
-        transform: translateX(0);
-        opacity: 1;
-      }
+  function deleteProject(index) {
+    if (state.projects.length <= 1) {
+      alert('Должен остаться хотя бы один проект!');
+      return;
     }
     
-    @keyframes fadeOut {
-      from {
-        opacity: 1;
-        transform: translateX(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateX(100%);
-      }
+    if (confirm('Удалить этот проект?')) {
+      state.projects.splice(index, 1);
+      renderProjectsEdit();
+      saveStateDebounced();
     }
-  `;
-  document.head.appendChild(style);
+  }
 
   function init() {
     loadState();
     
+    // Обработчики событий
     elements.loginButton.addEventListener('click', handleLogin);
-    elements.operatorInput.addEventListener('keypress', e => e.key === 'Enter' && handleLogin());
     elements.startShiftBtn.addEventListener('click', startShift);
     elements.endShiftBtn.addEventListener('click', showEndShiftConfirmation);
-    elements.pauseShiftBtn.addEventListener('click', togglePause);
-    elements.channelToggleBtn.addEventListener('click', toggleChannel);
+    elements.pauseShiftBtn.addEventListener('click', pauseShift);
     elements.endPauseBtn.addEventListener('click', endPause);
+    elements.channelToggleBtn.addEventListener('click', toggleChannel);
     elements.closeReportBtn.addEventListener('click', closeReport);
-    elements.exportCsvBtn.addEventListener('click', exportToCSV);
-    elements.editProjectsBtn.addEventListener('click', openEditProjectsModal);
-    elements.addProjectBtn.addEventListener('click', addNewProject);
-    elements.saveProjectsBtn.addEventListener('click', saveProjects);
-    elements.cancelEditBtn.addEventListener('click', () => {
-      elements.editProjectsModal.classList.remove('active');
-    });
+    elements.exportPdfBtn.addEventListener('click', exportToPDF);
     elements.saveCallsBtn.addEventListener('click', saveEditedCalls);
-    elements.cancelEditCallsBtn.addEventListener('click', () => {
-      elements.editCallsModal.classList.remove('active');
-      state.editingProject = null;
-    });
-    elements.editCallsInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') saveEditedCalls();
+    elements.cancelEditCallsBtn.addEventListener('click', () => { 
+      elements.editCallsModal.classList.remove('active'); 
+      state.editingProject = null; 
     });
     elements.confirmChannelChange.addEventListener('click', confirmChannelChange);
     elements.cancelChannelChange.addEventListener('click', cancelChannelChange);
     elements.confirmEndShift.addEventListener('click', confirmEndShift);
     elements.cancelEndShift.addEventListener('click', cancelEndShift);
-
-    elements.editProjectsModal.addEventListener('click', (e) => {
-      if (e.target === elements.editProjectsModal) {
-        elements.editProjectsModal.classList.remove('active');
-      }
+    elements.editProjectsBtn.addEventListener('click', openEditProjectsModal);
+    elements.addProjectBtn.addEventListener('click', addNewProject);
+    elements.saveProjectsBtn.addEventListener('click', saveProjects);
+    elements.cancelEditBtn.addEventListener('click', () => { 
+      elements.editProjectsModal.classList.remove('active'); 
     });
 
-    elements.editCallsModal.addEventListener('click', (e) => {
-      if (e.target === elements.editCallsModal) {
-        elements.editCallsModal.classList.remove('active');
-        state.editingProject = null;
-      }
-    });
-
-    elements.confirmChannelModal.addEventListener('click', (e) => {
-      if (e.target === elements.confirmChannelModal) {
-        cancelChannelChange();
-      }
-    });
-
-    elements.confirmEndShiftModal.addEventListener('click', (e) => {
-      if (e.target === elements.confirmEndShiftModal) {
-        cancelEndShift();
-      }
-    });
-
+    // Обработчик кликов по проектам
     elements.projectsContainer.addEventListener('click', e => {
       const btn = e.target.closest('.project-btn');
       if (btn && !btn.disabled) {
         const name = btn.dataset.project;
         const project = state.projects.find(p => p.name === name);
-        
         if (project) {
           if (project.status === 'active') {
             project.status = 'inactive';
             project.calls++;
             state.currentCall = null;
             state.callElapsed = 0;
+            saveStateDebounced();
           } else {
             state.projects.forEach(p => p.status = 'inactive');
             project.status = 'active';
             state.currentCall = name;
             state.callStartTime = Date.now();
             state.callElapsed = 0;
+            saveStateDebounced();
           }
-          
-          saveStateDebounced();
           renderProjects();
           updateStatusIndicator();
         }
       }
       
       const editBtn = e.target.closest('.edit-calls-btn');
-      if (editBtn) {
-        const projectName = editBtn.dataset.project;
-        openEditCallsModal(projectName);
+      if (editBtn) openEditCallsModal(editBtn.dataset.project);
+    });
+
+    // Обработчик удаления проектов в режиме редактирования
+    elements.projectsEditContainer.addEventListener('click', e => {
+      const deleteBtn = e.target.closest('.delete-project-btn');
+      if (deleteBtn) {
+        const index = parseInt(deleteBtn.dataset.index);
+        deleteProject(index);
       }
     });
 
+    // Восстановление состояния при загрузке
     if (state.operator) {
       elements.operatorName.textContent = state.operator;
       elements.loginModal.classList.remove('active');
       elements.app.style.display = 'block';
       elements.startShiftBtn.disabled = state.shiftActive;
-      elements.channelToggleBtn.textContent = state.channel;
+      updateChannelButton();
       
       if (state.shiftActive) {
-        startMainTimer();
+        if (state.shiftPaused) {
+          elements.pauseModal.classList.add('active');
+          updateStatusIndicator();
+        } else {
+          startMainTimer();
+        }
       }
       
       renderProjects();
       updateStatusIndicator();
     }
+
+    // Закрытие модальных окон по клику вне области
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+      }
+    });
+
+    // Enter для входа
+    elements.operatorInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
   }
 
   init();
