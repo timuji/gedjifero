@@ -8,6 +8,7 @@
   --success: #2ecc71;
   --danger: #e74c3c;
   --warning: #f39c12;
+  --info: #3498db;
   --transition: all 0.3s ease;
 }
 
@@ -19,14 +20,14 @@
 }
 
 body {
-  background: url('gedjifero-bg.png') center/cover no-repeat fixed;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
   color: var(--text-light);
   padding-top: 90px;
   min-height: 100vh;
   position: relative;
+  overflow-x: hidden;
 }
 
-/* Затемнение фона для лучшей читаемости */
 body::before {
   content: '';
   position: fixed;
@@ -38,7 +39,6 @@ body::before {
   z-index: -1;
 }
 
-/* === Шапка === */
 .header {
   position: fixed;
   top: 0;
@@ -62,18 +62,29 @@ body::before {
   gap: 15px;
 }
 
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .logo-img {
+  font-size: 32px;
+  width: 50px;
   height: 50px;
-  width: auto;
-  object-fit: contain;
-  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 50%;
+  border: 2px solid var(--accent);
 }
 
 .header-left h1 {
   font-size: 22px;
   color: var(--accent);
-  font-weight: 500;
-  display: none;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
 .header-right {
@@ -186,12 +197,12 @@ body::before {
   box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
-/* === Таймеры === */
 .timers {
   display: flex;
   gap: 30px;
   justify-content: center;
   margin: 30px 0;
+  flex-wrap: wrap;
 }
 
 .timer-card {
@@ -235,6 +246,12 @@ body::before {
   animation: pulse 1.5s infinite alternate;
 }
 
+.timer-card.paused .timer-value {
+  color: var(--warning);
+  text-shadow: 0 0 10px rgba(243, 156, 18, 0.5);
+  animation: pulse-warning 1.5s infinite alternate;
+}
+
 @keyframes pulse {
   0% {
     text-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
@@ -244,7 +261,15 @@ body::before {
   }
 }
 
-/* === Проекты === */
+@keyframes pulse-warning {
+  0% {
+    text-shadow: 0 0 5px rgba(243, 156, 18, 0.3);
+  }
+  100% {
+    text-shadow: 0 0 15px rgba(243, 156, 18, 0.7);
+  }
+}
+
 .projects-section {
   padding: 0 30px 40px;
   max-width: 1400px;
@@ -384,7 +409,6 @@ body::before {
   color: #fff;
 }
 
-/* === Модальные окна === */
 .modal {
   position: fixed;
   inset: 0;
@@ -463,7 +487,6 @@ body::before {
   box-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
 }
 
-/* === Стили для редактирования проектов === */
 .project-input {
   width: 100%;
   padding: 12px 15px;
@@ -497,7 +520,6 @@ body::before {
   box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
 }
 
-/* === Модалка паузы === */
 #pause-modal .login-modal-content {
   max-width: 600px;
   padding: 50px;
@@ -540,7 +562,6 @@ body::before {
   transform: scale(1.05);
 }
 
-/* === Модалка отчета === */
 #report-modal .login-modal-content {
   max-width: 800px;
   padding: 40px;
@@ -622,7 +643,141 @@ tr:hover td {
   background: rgba(212, 175, 55, 0.05);
 }
 
-/* === Адаптивность === */
+.projects-section > div:first-of-type {
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border-left: 3px solid var(--accent);
+  animation: fadeIn 0.5s ease;
+}
+
+.projects-section > div:first-of-type p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--accent);
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.edit-calls-btn {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 16px;
+}
+
+.edit-calls-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.project-card > div {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.project-card .project-btn {
+  flex: 1;
+  margin-top: 0;
+}
+
+.confirm-modal-content {
+  background: linear-gradient(145deg, rgba(21, 21, 21, 0.98), rgba(13, 13, 13, 0.98));
+  padding: 40px;
+  border-radius: 20px;
+  border: 2px solid rgba(212, 175, 55, 0.4);
+  text-align: center;
+  width: 90%;
+  max-width: 450px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+  transform: translateY(30px) scale(0.95);
+  transition: all 0.4s ease;
+  backdrop-filter: blur(20px);
+}
+
+.modal.active .confirm-modal-content {
+  transform: translateY(0) scale(1);
+}
+
+.confirm-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: pulse 2s infinite;
+}
+
+.confirm-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.confirm-button {
+  padding: 15px 30px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.confirm-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.confirm-button:active {
+  transform: translateY(0);
+}
+
+.confirm-yes {
+  background: linear-gradient(145deg, #27ae60, #219a52);
+  color: white;
+}
+
+.confirm-yes:hover {
+  background: linear-gradient(145deg, #2ecc71, #27ae60);
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.4);
+}
+
+.confirm-no {
+  background: #666;
+  color: white;
+}
+
+.confirm-no:hover {
+  background: #777;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 1200px) {
   .projects-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -679,6 +834,21 @@ tr:hover td {
 
   .logo-img {
     height: 40px;
+    width: 40px;
+    font-size: 24px;
+  }
+  
+  .header-left h1 {
+    font-size: 18px;
+  }
+  
+  .confirm-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .confirm-button {
+    width: 100%;
   }
 }
 
@@ -708,31 +878,13 @@ tr:hover td {
     width: 100%;
     justify-content: center;
   }
-}
-
-.edit-calls-btn {
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--accent);
-  background: transparent;
-  color: var(--accent);
-  cursor: pointer;
-  transition: var(--transition);
-  font-size: 16px;
-}
-
-.edit-calls-btn:hover {
-  background: rgba(212, 175, 55, 0.1);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-}
-
-.project-card > div {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.project-card .project-btn {
-  flex: 1;
-  margin-top: 0;
+  
+  .projects-section > div:first-of-type {
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .projects-section > div:first-of-type p {
+    font-size: 12px;
+  }
 }
