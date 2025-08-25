@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     reportBody: document.getElementById('report-body'),
     closeReportBtn: document.getElementById('close-report'),
     exportPdfBtn: document.getElementById('export-pdf'),
+    exportCsvBtn: document.getElementById('export-csv'),
     statusIndicator: document.querySelector('.status-indicator'),
     editProjectsBtn: document.getElementById('edit-projects-btn'),
     editProjectsModal: document.getElementById('edit-projects-modal'),
@@ -42,7 +43,19 @@ document.addEventListener('DOMContentLoaded', function () {
     shiftDurationConfirm: document.getElementById('shift-duration-confirm'),
     totalCallsConfirm: document.getElementById('total-calls-confirm'),
     confirmEndShift: document.getElementById('confirm-end-shift'),
-    cancelEndShift: document.getElementById('cancel-end-shift')
+    cancelEndShift: document.getElementById('cancel-end-shift'),
+    bgSettingsBtn: document.getElementById('bg-settings-btn'),
+    bgModal: document.getElementById('background-modal'),
+    bgOptions: document.querySelectorAll('.bg-option'),
+    bgUpload: document.getElementById('bg-upload'),
+    previewBgBtn: document.getElementById('preview-bg'),
+    resetBgBtn: document.getElementById('reset-bg'),
+    saveBgBtn: document.getElementById('save-bg'),
+    cancelBgBtn: document.getElementById('cancel-bg'),
+    hotkeysToggle: document.getElementById('hotkeys-toggle'),
+    hotkeysModal: document.getElementById('hotkeys-modal'),
+    closeHotkeys: document.getElementById('close-hotkeys'),
+    themeToggle: document.getElementById('theme-toggle')
   };
 
   function debounce(func, wait) {
@@ -70,12 +83,22 @@ document.addEventListener('DOMContentLoaded', function () {
     callStartTime: 0,
     callElapsed: 0,
     channel: 'Call Back',
-    channels: ['Call Back', 'Hot Line'], // ТОЛЬКО 2 канала!
+    channels: ['Call Back', 'Hot Line'],
     projects: [],
     mainTimer: null,
     editingProject: null,
     lastUpdate: 0,
-    pendingChannelChange: null
+    pendingChannelChange: null,
+    background: {
+      type: 'gradient',
+      value: 'gradient1',
+      customImage: null
+    },
+    stats: {
+      totalCalls: 0,
+      avgCallDuration: 0,
+      efficiency: 0
+    }
   };
 
   function formatTime(seconds) {
@@ -108,6 +131,12 @@ document.addEventListener('DOMContentLoaded', function () {
           }
           startMainTimer();
         }
+        
+        // Применить сохраненный фон
+        setTimeout(() => {
+          applyBackground();
+        }, 100);
+        
       } else {
         for (let i = 1; i <= 5; i++) {
           state.projects.push({ name: `Проект ${i}`, calls: 0, status: 'inactive' });
@@ -160,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
                      state.shiftPaused ? 'Смена на паузе' :
                      state.currentCall && state.currentCall !== project.name ? 'Завершите текущий звонок' : '';
       card.innerHTML = `
-        <h3>${project.name}</h3>
+        <h3 contenteditable="true" onblur="updateProjectName('${project.name}', this.textContent)">${project.name}</h3>
         <div>Звонков: ${project.calls}</div>
         <div>Канал: ${state.channel}</div>
         <div style="display: flex; gap: 10px; margin-top: 15px;">
@@ -175,6 +204,20 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.projectsContainer.innerHTML = '';
     elements.projectsContainer.appendChild(fragment);
     elements.projectCount.textContent = `Проектов: ${state.projects.length}`;
+  }
+
+  function updateProjectName(oldName, newName) {
+    if (!newName.trim()) return;
+    
+    const project = state.projects.find(p => p.name === oldName);
+    if (project && newName !== oldName) {
+      project.name = newName.trim();
+      if (state.currentCall === oldName) {
+        state.currentCall = newName.trim();
+      }
+      saveStateDebounced();
+      renderProjects();
+    }
   }
 
   function renderProjectsEdit() {
@@ -370,7 +413,19 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.confirmEndShiftModal.classList.remove('active');
   }
 
+  function updateStats() {
+    const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
+    const totalShiftTime = state.shiftElapsed - state.pauseTotalElapsed;
+    const productiveTime = state.callElapsed;
+    
+    state.stats.totalCalls = totalCalls;
+    state.stats.avgCallDuration = totalCalls > 0 ? productiveTime / totalCalls : 0;
+    state.stats.efficiency = totalShiftTime > 0 ? (productiveTime / totalShiftTime) * 100 : 0;
+  }
+
   function showReport() {
+    updateStats();
+    
     const totalSeconds = Math.floor(state.shiftElapsed / 1000);
     const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
     const currentDate = new Date().toLocaleDateString('ru-RU');
@@ -401,6 +456,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (state.projects.every(p => p.calls === 0)) {
       reportHTML += `<div>Нет звонков за смену</div>`;
     }
+    
+    reportHTML += `
+      <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+        <h3>📊 Статистика эффективности</h3>
+        <div>Общее время работы: ${formatTime(Math.floor((state.shiftElapsed - state.pauseTotalElapsed) / 1000))}</div>
+        <div>Продуктивное время: ${formatTime(Math.floor(state.callElapsed / 1000))}</div>
+        <div>Эффективность: ${state.stats.efficiency.toFixed(1)}%</div>
+        <div>Средняя длительность звонка: ${formatTimeShort(Math.floor(state.stats.avgCallDuration / 1000))}</div>
+      </div>
+    `;
     
     elements.reportBody.innerHTML = reportHTML;
     elements.reportModal.classList.add('active');
@@ -442,8 +507,40 @@ document.addEventListener('DOMContentLoaded', function () {
     doc.text(`Всего звонков: ${totalCalls}`, 20, y + 15);
     doc.text(`Время смены: ${formatTime(totalSeconds)}`, 20, y + 25);
     doc.text(`Время пауз: ${formatTime(Math.floor(state.pauseTotalElapsed / 1000))}`, 20, y + 35);
+    doc.text(`Эффективность: ${state.stats.efficiency.toFixed(1)}%`, 20, y + 45);
     
     doc.save(`отчет_${state.operator}_${new Date().toISOString().split('T')[0]}.pdf`);
+  }
+
+  function exportToCSV() {
+    const currentDate = new Date().toLocaleDateString('ru-RU');
+    const startTime = new Date(Date.now() - state.shiftElapsed).toLocaleTimeString('ru-RU');
+    const endTime = new Date().toLocaleTimeString('ru-RU');
+    
+    let csv = `Отчет оператора: ${state.operator}\n`;
+    csv += `Дата: ${currentDate}\n`;
+    csv += `Период: ${startTime} - ${endTime}\n`;
+    csv += `Канал: ${state.channel}\n\n`;
+    csv += 'Проект,Количество звонков\n';
+    
+    state.projects.forEach(project => {
+      if (project.calls > 0) {
+        csv += `${project.name},${project.calls}\n`;
+      }
+    });
+    
+    csv += `\nВсего звонков:,${state.stats.totalCalls}\n`;
+    csv += `Эффективность:,${state.stats.efficiency.toFixed(1)}%\n`;
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `отчет_${state.operator}_${currentDate.replace(/\./g, '-')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   function resetShiftData() {
@@ -545,8 +642,254 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Функции для работы с фоном
+  function applyBackground() {
+    const body = document.body;
+    
+    // Удаляем предыдущие классы
+    body.classList.remove('custom-bg', 'custom-bg-img');
+    
+    switch (state.background.type) {
+      case 'gradient':
+        applyGradientBackground(state.background.value);
+        break;
+      case 'color':
+        applyColorBackground(state.background.value);
+        break;
+      case 'image':
+        applyImageBackground(state.background.value);
+        break;
+    }
+  }
+
+  function applyGradientBackground(gradientId) {
+    const gradients = {
+      gradient1: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%)',
+      gradient2: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      gradient3: 'linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%)',
+      gradient4: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%)',
+      gradient5: 'linear-gradient(135deg, #4b006e 0%, #8e44ad 50%, #4b006e 100%)',
+      gradient6: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #c0392b 100%)'
+    };
+    
+    document.body.style.setProperty('--custom-background', gradients[gradientId]);
+    document.body.classList.add('custom-bg');
+  }
+
+  function applyColorBackground(colorId) {
+    const colors = {
+      color1: '#0a0a0a',
+      color2: '#1a1a1a',
+      color3: '#2a2a2a',
+      color4: '#1e1e1e',
+      color5: '#252525',
+      color6: '#333333'
+    };
+    
+    document.body.style.setProperty('--custom-background', colors[colorId]);
+    document.body.classList.add('custom-bg');
+  }
+
+  function applyImageBackground(imageData) {
+    document.body.style.setProperty('--custom-background-image', `url(${imageData})`);
+    document.body.classList.add('custom-bg-img');
+  }
+
+  function openBackgroundModal() {
+    elements.bgModal.classList.add('active');
+    
+    // Сбросить выбор
+    elements.bgOptions.forEach(opt => opt.classList.remove('selected'));
+    
+    // Показать текущий выбор если есть
+    if (state.background.type === 'gradient' || state.background.type === 'color') {
+      const selected = document.querySelector(`[data-bg="${state.background.value}"]`);
+      if (selected) selected.classList.add('selected');
+    }
+    
+    // Сбросить загрузку файла
+    elements.bgUpload.value = '';
+  }
+
+  function handleBackgroundSelection(e) {
+    const bgOption = e.target.closest('.bg-option');
+    if (!bgOption) return;
+    
+    // Сбросить предыдущий выбор
+    elements.bgOptions.forEach(opt => opt.classList.remove('selected'));
+    
+    // Выбрать новый
+    bgOption.classList.add('selected');
+    
+    const bgType = bgOption.dataset.bg.startsWith('gradient') ? 'gradient' : 'color';
+    state.background.type = bgType;
+    state.background.value = bgOption.dataset.bg;
+    state.background.customImage = null;
+    
+    applyBackground();
+  }
+
+  function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите файл изображения');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      state.background.type = 'image';
+      state.background.value = 'custom';
+      state.background.customImage = e.target.result;
+      
+      applyImageBackground(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function previewBackground() {
+    if (elements.bgUpload.files[0]) {
+      handleImageUpload({ target: { files: [elements.bgUpload.files[0]] } });
+    }
+  }
+
+  function resetBackground() {
+    // Вернуть стандартный градиент
+    state.background.type = 'gradient';
+    state.background.value = 'gradient1';
+    state.background.customImage = null;
+    
+    applyGradientBackground('gradient1');
+    elements.bgUpload.value = '';
+    elements.bgOptions.forEach(opt => opt.classList.remove('selected'));
+    
+    // Выбрать стандартный градиент
+    const defaultBg = document.querySelector('[data-bg="gradient1"]');
+    if (defaultBg) defaultBg.classList.add('selected');
+  }
+
+  function saveBackground() {
+    saveStateDebounced();
+    elements.bgModal.classList.remove('active');
+  }
+
+  function cancelBackground() {
+    // Восстановить предыдущие настройки
+    applyBackground();
+    elements.bgModal.classList.remove('active');
+  }
+
+  // Функции для горячих клавиш
+  function openHotkeysModal() {
+    elements.hotkeysModal.classList.add('active');
+  }
+
+  function closeHotkeysModal() {
+    elements.hotkeysModal.classList.remove('active');
+  }
+
+  function setupHotkeysCopy() {
+    elements.hotkeysModal.addEventListener('click', (e) => {
+      const hotkeyCode = e.target.closest('.hotkey-code');
+      if (hotkeyCode) {
+        const textToCopy = hotkeyCode.textContent;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          // Визуальная обратная связь
+          const originalText = hotkeyCode.textContent;
+          hotkeyCode.textContent = '✓ Скопировано!';
+          hotkeyCode.style.color = '#2ecc71';
+          
+          setTimeout(() => {
+            hotkeyCode.textContent = originalText;
+            hotkeyCode.style.color = 'var(--accent)';
+          }, 2000);
+        }).catch(err => {
+          console.error('Ошибка копирования:', err);
+        });
+      }
+    });
+  }
+
+  // Функция переключения темы
+  function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    elements.themeToggle.textContent = newTheme === 'dark' ? '🌙' : '☀️';
+    localStorage.setItem('gedjifero_theme', newTheme);
+  }
+
+  // Горячие клавиши
+  function setupHotkeys() {
+    document.addEventListener('keydown', (e) => {
+      // Alt+P - пауза/продолжение
+      if (e.altKey && e.key === 'p') {
+        e.preventDefault();
+        if (state.shiftActive) {
+          if (state.shiftPaused) {
+            endPause();
+          } else {
+            pauseShift();
+          }
+        }
+      }
+      
+      // Alt+Q - завершение смены
+      if (e.altKey && e.key === 'q') {
+        e.preventDefault();
+        if (state.shiftActive) {
+          showEndShiftConfirmation();
+        }
+      }
+      
+      // Alt+C - переключение канала
+      if (e.altKey && e.key === 'c') {
+        e.preventDefault();
+        toggleChannel();
+      }
+      
+      // Alt+H - открыть горячие клавиши
+      if (e.altKey && e.key === 'h') {
+        e.preventDefault();
+        openHotkeysModal();
+      }
+      
+      // Цифры 1-9 для быстрого выбора проектов
+      if (e.key >= '1' && e.key <= '9' && state.shiftActive && !state.shiftPaused) {
+        const index = parseInt(e.key) - 1;
+        if (index < state.projects.length) {
+          const project = state.projects[index];
+          const btn = document.querySelector(`[data-project="${project.name}"]`);
+          if (btn && !btn.disabled) {
+            btn.click();
+          }
+        }
+      }
+    });
+  }
+
+  // Уведомления
+  function showNotification(title, options = {}) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, options);
+    }
+  }
+
+  function requestNotificationPermission() {
+    if ('Notification' in window) {
+      Notification.requestPermission();
+    }
+  }
+
   function init() {
     loadState();
+    
+    // Загрузка темы
+    const savedTheme = localStorage.getItem('gedjifero_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    elements.themeToggle.textContent = savedTheme === 'dark' ? '🌙' : '☀️';
     
     // Обработчики событий
     elements.loginButton.addEventListener('click', handleLogin);
@@ -557,6 +900,7 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.channelToggleBtn.addEventListener('click', toggleChannel);
     elements.closeReportBtn.addEventListener('click', closeReport);
     elements.exportPdfBtn.addEventListener('click', exportToPDF);
+    elements.exportCsvBtn.addEventListener('click', exportToCSV);
     elements.saveCallsBtn.addEventListener('click', saveEditedCalls);
     elements.cancelEditCallsBtn.addEventListener('click', () => { 
       elements.editCallsModal.classList.remove('active'); 
@@ -572,7 +916,26 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.cancelEditBtn.addEventListener('click', () => { 
       elements.editProjectsModal.classList.remove('active'); 
     });
-
+    
+    // Обработчики для фона
+    elements.bgSettingsBtn.addEventListener('click', openBackgroundModal);
+    elements.bgOptions.forEach(opt => {
+      opt.addEventListener('click', handleBackgroundSelection);
+    });
+    elements.bgUpload.addEventListener('change', handleImageUpload);
+    elements.previewBgBtn.addEventListener('click', previewBackground);
+    elements.resetBgBtn.addEventListener('click', resetBackground);
+    elements.saveBgBtn.addEventListener('click', saveBackground);
+    elements.cancelBgBtn.addEventListener('click', cancelBackground);
+    
+    // Обработчики для горячих клавиш
+    elements.hotkeysToggle.addEventListener('click', openHotkeysModal);
+    elements.closeHotkeys.addEventListener('click', closeHotkeysModal);
+    setupHotkeysCopy();
+    
+    // Обработчик темы
+    elements.themeToggle.addEventListener('click', toggleTheme);
+    
     // Обработчик кликов по проектам
     elements.projectsContainer.addEventListener('click', e => {
       const btn = e.target.closest('.project-btn');
@@ -644,7 +1007,14 @@ document.addEventListener('DOMContentLoaded', function () {
     elements.operatorInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') handleLogin();
     });
+
+    // Настройка горячих клавиш и уведомлений
+    setupHotkeys();
+    requestNotificationPermission();
   }
+
+  // Глобальные функции
+  window.updateProjectName = updateProjectName;
 
   init();
 });
