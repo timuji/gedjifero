@@ -34,6 +34,9 @@
         <button id="end-shift" class="btn-shift">Завершить смену</button>
         <button id="pause-shift-btn" class="btn-shift">⏸ Пауза</button>
         <button id="channel-toggle-button" class="btn-channel">Call Back</button>
+        <button id="bg-settings-btn" class="btn-shift" title="Настройки фона">🎨</button>
+        <button id="hotkeys-toggle" class="btn-shift" title="Ключ коды">⌨️</button>
+        <button id="theme-toggle" class="theme-toggle" title="Сменить тему">🌙</button>
       </div>
     </header>
 
@@ -78,6 +81,7 @@
       <div id="report-body"></div>
       <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
         <button id="export-pdf" class="btn-shift">📊 Экспорт PDF</button>
+        <button id="export-csv" class="btn-shift">📝 Экспорт CSV</button>
         <button id="close-report" class="btn-shift">Закрыть</button>
       </div>
     </div>
@@ -124,23 +128,23 @@
     </div>
   </div>
 
-<div id="confirm-channel-modal" class="modal">
-  <div class="login-modal-content">
-    <div style="text-align: center; margin-bottom: 25px;">
-      <div style="font-size: 48px; margin-bottom: 15px;">🔁</div>
-      <h2 style="color: var(--accent); margin-bottom: 10px;">Сменить канал?</h2>
-      <p style="opacity: 0.8; line-height: 1.5;">
-        Вы уверены, что хотите сменить канал с 
-        <span id="current-channel-name" style="color: var(--accent); font-weight: 600;">Call Back</span> на 
-        <span id="new-channel-name" style="color: var(--warning); font-weight: 600;">Hot Line</span>?
-      </p>
-    </div>
-    <div style="display: flex; gap: 15px; justify-content: center;">
-      <button id="confirm-channel-change" class="btn-shift" style="background: linear-gradient(145deg, #27ae60, #219a52);">Да, сменить</button>
-      <button id="cancel-channel-change" class="btn-shift" style="background: #666;">Отмена</button>
+  <div id="confirm-channel-modal" class="modal">
+    <div class="login-modal-content">
+      <div style="text-align: center; margin-bottom: 25px;">
+        <div style="font-size: 48px; margin-bottom: 15px;">🔁</div>
+        <h2 style="color: var(--accent); margin-bottom: 10px;">Сменить канал?</h2>
+        <p style="opacity: 0.8; line-height: 1.5;">
+          Вы уверены, что хотите сменить канал с 
+          <span id="current-channel-name" style="color: var(--accent); font-weight: 600;">Call Back</span> на 
+          <span id="new-channel-name" style="color: var(--warning); font-weight: 600;">Hot Line</span>?
+        </p>
+      </div>
+      <div style="display: flex; gap: 15px; justify-content: center;">
+        <button id="confirm-channel-change" class="btn-shift" style="background: linear-gradient(145deg, #27ae60, #219a52);">Да, сменить</button>
+        <button id="cancel-channel-change" class="btn-shift" style="background: #666;">Отмена</button>
+      </div>
     </div>
   </div>
-</div>
 
   <div id="confirm-end-shift-modal" class="modal">
     <div class="login-modal-content">
@@ -162,6 +166,112 @@
         <button id="confirm-end-shift" class="btn-shift" style="background: linear-gradient(145deg, #e74c3c, #c0392b);">Да, завершить</button>
         <button id="cancel-end-shift" class="btn-shift" style="background: #666;">Отмена</button>
       </div>
+    </div>
+  </div>
+
+  <div id="background-modal" class="modal">
+    <div class="login-modal-content">
+      <h2>🎨 Настройка фона</h2>
+      
+      <div style="margin: 20px 0;">
+        <h3>Градиенты</h3>
+        <div class="background-options">
+          <div class="bg-option" data-bg="gradient1" style="background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);"></div>
+          <div class="bg-option" data-bg="gradient2" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);"></div>
+          <div class="bg-option" data-bg="gradient3" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);"></div>
+          <div class="bg-option" data-bg="gradient4" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);"></div>
+          <div class="bg-option" data-bg="gradient5" style="background: linear-gradient(135deg, #4b006e 0%, #8e44ad 50%, #4b006e 100%);"></div>
+          <div class="bg-option" data-bg="gradient6" style="background: linear-gradient(135deg, #c0392b 0%, #e74c3c 50%, #c0392b 100%);"></div>
+        </div>
+      </div>
+
+      <div style="margin: 20px 0;">
+        <h3>Сплошные цвета</h3>
+        <div class="background-options">
+          <div class="bg-option" data-bg="color1" style="background: #0a0a0a;"></div>
+          <div class="bg-option" data-bg="color2" style="background: #1a1a1a;"></div>
+          <div class="bg-option" data-bg="color3" style="background: #2a2a2a;"></div>
+          <div class="bg-option" data-bg="color4" style="background: #1e1e1e;"></div>
+          <div class="bg-option" data-bg="color5" style="background: #252525;"></div>
+          <div class="bg-option" data-bg="color6" style="background: #333333;"></div>
+        </div>
+      </div>
+
+      <div style="margin: 20px 0;">
+        <h3>Загрузить свое изображение</h3>
+        <input type="file" id="bg-upload" accept="image/*" style="width: 100%; margin: 10px 0;">
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="preview-bg" class="btn-shift">Предпросмотр</button>
+          <button id="reset-bg" class="btn-shift" style="background: #666;">Сбросить</button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button id="save-bg" class="btn-shift">Сохранить</button>
+        <button id="cancel-bg" class="btn-shift" style="background: #666;">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="hotkeys-modal" class="modal">
+    <div class="login-modal-content" style="max-width: 700px;">
+      <h2>⌨️ ключи коды</h2>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 25px 0;">
+        <!-- Hot Line -->
+        <div>
+          <h3 style="color: #ff6b6b; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            🔥 Hot Line
+          </h3>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*09951*#</span>
+            <span class="hotkey-desc">Вход в очередь</span>
+          </div>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*09959*#</span>
+            <span class="hotkey-desc">Выход с очереди</span>
+          </div>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*09955*#</span>
+            <span class="hotkey-desc">Пауза</span>
+          </div>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*09950*#</span>
+            <span class="hotkey-desc">Выход с паузы</span>
+          </div>
+        </div>
+        
+        <!-- Call Back -->
+        <div>
+          <h3 style="color: #4ecdc4; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            📞 Call Back
+          </h3>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*5551*#код</span>
+            <span class="hotkey-desc">Вход в очередь</span>
+          </div>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*5559*#код</span>
+            <span class="hotkey-desc">Выход с очереди</span>
+          </div>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*6665*#</span>
+            <span class="hotkey-desc">Пауза</span>
+          </div>
+          <div class="hotkey-item">
+            <span class="hotkey-code">*6660*#</span>
+            <span class="hotkey-desc">Выход с паузы</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="background: rgba(212, 175, 55, 0.1); padding: 15px; border-radius: 12px; border-left: 4px solid var(--accent); margin: 20px 0;">
+        <p style="margin: 0; font-size: 14px; color: var(--accent); text-align: center;">
+          💡 Ключи для входа в линию зависимости от выбранного канала
+        </p>
+      </div>
+
+      <button id="close-hotkeys" class="btn-shift" style="margin-top: 15px;">Закрыть</button>
     </div>
   </div>
 
