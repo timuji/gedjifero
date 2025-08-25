@@ -10,6 +10,17 @@
   --warning: #f39c12;
   --info: #3498db;
   --transition: all 0.3s ease;
+  --custom-background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
+  --custom-background-image: none;
+}
+
+:root[data-theme="light"] {
+  --bg-dark: #f0f0f0;
+  --bg-card: #ffffff;
+  --text-light: #333333;
+  --accent: #d4af37;
+  --accent-hover: #b89527;
+  --shadow: rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -20,12 +31,13 @@
 }
 
 body {
-  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a2a2a 100%);
+  background: var(--custom-background);
   color: var(--text-light);
   padding-top: 90px;
   min-height: 100vh;
   position: relative;
   overflow-x: hidden;
+  transition: background 0.5s ease;
 }
 
 body::before {
@@ -35,8 +47,20 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(10, 10, 10, 0.85);
+  background: var(--custom-background);
   z-index: -1;
+  transition: background 0.5s ease;
+}
+
+body.custom-bg::before {
+  background: var(--custom-background);
+}
+
+body.custom-bg-img::before {
+  background: var(--custom-background-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .header {
@@ -194,7 +218,21 @@ body::before {
 
 .btn-edit:hover {
   background: rgba(212, 175, 55, 0.2);
-  box-shadow: 0 0 10px rgba(212, 175, 55, 极 0.3);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.theme-toggle:hover {
+  background: rgba(212, 175, 55, 0.1);
 }
 
 .timers {
@@ -211,7 +249,7 @@ body::before {
   border-radius: 16px;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 6px 极 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
   min-width: 180px;
   transition: var(--transition);
   backdrop-filter: blur(10px);
@@ -257,7 +295,7 @@ body::before {
     text-shadow: 0 0 5px rgba(212, 175, 55, 0.3);
   }
   100% {
-    text-shadow: 0 极 0 15px rgba(212, 175, 55, 0.7);
+    text-shadow: 0 0 15px rgba(212, 175, 55, 0.7);
   }
 }
 
@@ -374,7 +412,7 @@ body::before {
 }
 
 .project-btn:disabled {
-  opacity: 极 0.5;
+  opacity: 0.5;
   cursor: not-allowed;
   border-color: #555;
   color: #777;
@@ -392,12 +430,12 @@ body::before {
   transform: translateX(-50%);
   white-space: nowrap;
   z-index: 10;
-  border: 极 1px solid #444;
+  border: 1px solid #444;
 }
 
 .active-call-card {
   border: 1px solid rgba(212, 175, 55, 0.5);
-  box-shadow: 极 0 0 20px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
 }
 
 .active-call-card::before {
@@ -474,7 +512,7 @@ body::before {
   color: #111;
   cursor: pointer;
   font-weight: 600;
-  font-size: 极 16px;
+  font-size: 16px;
   padding: 15px;
   margin-top: 10px;
   border: none;
@@ -494,7 +532,7 @@ body::before {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.3);
- 极 color: white;
+  color: white;
   font-size: 14px;
 }
 
@@ -507,7 +545,7 @@ body::before {
 .delete-project-btn {
   background: rgba(231, 76, 60, 0.1);
   border: 1px solid rgba(231, 76, 60, 0.3);
-  color: #e74c极 3c;
+  color: #e74c3c;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -732,17 +770,102 @@ body::before {
   text-align: center;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Стили для выбора фона */
+.background-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 15px 0;
 }
 
+.bg-option {
+  width: 100%;
+  height: 60px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.bg-option:hover {
+  transform: scale(1.05);
+  border-color: var(--accent);
+}
+
+.bg-option.selected {
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+}
+
+/* Стили для панели горячих клавиш */
+.hotkey-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  margin: 8px 0;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+  transition: all 0.3s ease;
+}
+
+.hotkey-item:hover {
+  background: rgba(0, 0, 0, 0.3);
+  transform: translateX(5px);
+}
+
+.hotkey-code {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hotkey-code:hover {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+.hotkey-desc {
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Стили для тултипа */
+#hotkeys-toggle {
+  position: relative;
+}
+
+#hotkeys-toggle::after {
+  content: 'Ключи коды';
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+#hotkeys-toggle:hover::after {
+  opacity: 1;
+  visibility: visible;
+  bottom: -30px;
+}
+
+/* Адаптивность */
 @media (max-width: 1200px) {
   .projects-grid {
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -815,6 +938,25 @@ body::before {
   .confirm-button {
     width: 100%;
   }
+  
+  .background-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  #hotkeys-modal .login-modal-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .hotkey-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  
+  .hotkey-code {
+    font-size: 13px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -845,7 +987,23 @@ body::before {
     margin-bottom: 15px;
   }
   
-  .projects-section >极 div:first-of-type p {
+  .projects-section > div:first-of-type p {
     font-size: 12px;
+  }
+  
+  .background-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .bg-option {
+    height: 50px;
+  }
+  
+  .hotkey-code {
+    font-size: 12px;
+  }
+  
+  .hotkey-desc {
+    font-size: 13px;
   }
 }
