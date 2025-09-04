@@ -1,3 +1,4 @@
+
 document.addEventListener('DOMContentLoaded', function () {
   const elements = {
     loginModal: document.getElementById('login-modal'),
@@ -55,7 +56,9 @@ document.addEventListener('DOMContentLoaded', function () {
     hotkeysToggle: document.getElementById('hotkeys-toggle'),
     hotkeysModal: document.getElementById('hotkeys-modal'),
     closeHotkeys: document.getElementById('close-hotkeys'),
-    themeToggle: document.getElementById('theme-toggle')
+    themeToggle: document.getElementById('theme-toggle'),
+    totalCalls: document.getElementById('total-calls'),
+
   };
 
   function debounce(func, wait) {
@@ -282,8 +285,10 @@ document.addEventListener('DOMContentLoaded', function () {
     } else {
       elements.pauseTotalTimer.parentElement.classList.remove('paused');
     }
-  }
-
+	const totalCalls = state.projects.reduce((sum, p) => sum + p.calls, 0);
+  elements.totalCalls.textContent = totalCalls;
+}
+  
   function handleLogin() {
     const name = elements.operatorInput.value.trim();
     if (!name) return alert("Введите имя оператора!");
